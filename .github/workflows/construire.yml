@@ -34,12 +34,14 @@ jobs:
             echo "Secrets de signature absents : pas de version publiée."
           fi
       - name: Activer l'accélération de l'émulateur
+        if: github.event_name == 'workflow_dispatch'
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - name: Tester sur un téléphone Android 14 simulé
         id: test
+        if: github.event_name == 'workflow_dispatch'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -50,7 +52,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none
           script: bash ci/test-emulateur.sh
       - name: Publier les résultats du test
-        if: always()
+        if: always() && github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
