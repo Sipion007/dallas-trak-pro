@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Dallas Trak · Espace client</title>
+<meta name="theme-color" content="#0D1A15">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dallas Trak">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icone-192.png">
+<link rel="apple-touch-icon" href="icone-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Familjen+Grotesk:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+/* Application client : carte plein écran, panneau en bas sur téléphone, panneau à gauche sur ordinateur. */
+:root{
+  --nuit:#0D1A15;--nuit-2:#14261F;--nuit-3:#1C3229;--nuit-4:#24402F;
+  --laterite:#C2502A;--ambre:#F2A93B;--feuille:#5E9A6E;--danger:#E0533D;
+  --sable:#EFE6D8;--brume:#9AAEA2;--trait:rgba(239,230,216,.12);
+  --display:"Big Shoulders Display","Arial Narrow",sans-serif;
+  --texte:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--nuit);color:var(--sable);font-family:var(--texte);font-size:16px;line-height:1.45;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--ambre);outline-offset:2px}
+#carte{position:fixed;inset:0;background:#0b1511;z-index:0}
+.leaflet-container{background:#0b1511;font-family:var(--texte)}
+.leaflet-control-attribution{background:rgba(13,26,21,.7)!important;color:var(--brume)!important;font-size:10px!important}
+.leaflet-control-attribution a{color:var(--sable)!important}
+.leaflet-top.leaflet-right{top:calc(env(safe-area-inset-top,0px) + 116px)}
+.vue-carte{position:fixed;z-index:20;top:calc(env(safe-area-inset-top,0px) + 68px);right:max(14px,env(safe-area-inset-right,0px));height:40px;padding:0 16px;border-radius:999px;background:rgba(20,38,31,.92);backdrop-filter:blur(10px);border:1px solid var(--trait);font-weight:600;font-size:.88rem;color:var(--sable)}
+.vue-carte:hover{border-color:rgba(239,230,216,.35)}
+.vue-carte[disabled]{opacity:.45;cursor:not-allowed}
+.resultats-titre{font-size:.82rem;color:var(--brume);margin:2px 0 -6px}
+
+/* Barre du haut */
+.haut{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:calc(env(safe-area-inset-top,0px) + 12px) max(14px,env(safe-area-inset-right,0px)) 0 max(14px,env(safe-area-inset-left,0px));pointer-events:none}
+.haut>*{pointer-events:auto}
+.rond{width:46px;height:46px;border-radius:50%;border:1px solid var(--trait);background:rgba(20,38,31,.9);backdrop-filter:blur(10px);display:grid;place-items:center;flex:none}
+.rond[disabled]{opacity:.4}
+.marque{display:flex;align-items:center;gap:8px;padding:0 16px 0 10px;height:46px;border-radius:999px;background:rgba(20,38,31,.9);backdrop-filter:blur(10px);border:1px solid var(--trait);font-family:var(--display);font-weight:800;font-size:1.3rem;white-space:nowrap}
+
+/* Panneau */
+.panneau{position:fixed;z-index:30;left:0;right:0;bottom:0;background:var(--nuit-2);border-top-left-radius:24px;border-top-right-radius:24px;border:1px solid var(--trait);border-bottom:0;box-shadow:0 -18px 50px rgba(0,0,0,.45);max-height:min(78vh,720px);display:flex;flex-direction:column}
+.panneau.plein{top:calc(env(safe-area-inset-top,0px) + 70px);max-height:none}
+.poignee{width:44px;height:5px;border-radius:5px;background:rgba(239,230,216,.22);margin:10px auto 2px;flex:none}
+.contenu{overflow-y:auto;padding:12px max(18px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));overscroll-behavior:contain}
+@media (min-width:860px){
+  .panneau,.panneau.plein{left:max(20px,env(safe-area-inset-left,0px));right:auto;top:84px;bottom:auto;width:400px;max-height:calc(100% - 104px);border-radius:24px;border:1px solid var(--trait)}
+  .poignee{display:none}
+  .contenu{padding:22px}
+}
+h1,h2{font-family:var(--display);font-weight:800;line-height:.95;margin:0;letter-spacing:-.005em}
+h1{font-size:2.3rem}
+h2{font-size:1.75rem}
+p{margin:0}
+.mute{color:var(--brume)}
+.petit{font-size:.88rem}
+.pile{display:grid;gap:14px}
+.entre{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.centre{text-align:center}
+
+/* Champs */
+.champ-btn{width:100%;display:flex;align-items:center;gap:12px;min-height:58px;padding:0 18px;border-radius:16px;background:var(--nuit-3);border:1px solid var(--trait);text-align:left;font-size:1.08rem;font-weight:500}
+.champ-btn:hover{border-color:rgba(239,230,216,.3)}
+.saisie{width:100%;min-height:52px;padding:0 16px;border-radius:14px;background:var(--nuit-3);border:1px solid var(--trait);outline:none;font-size:1rem}
+.saisie:focus{border-color:var(--ambre)}
+.saisie::placeholder{color:#7E9186}
+textarea.saisie{padding:12px 16px;min-height:80px;resize:vertical}
+label.etiq,.etiq{display:block;font-size:.85rem;color:var(--brume);margin-bottom:6px}
+.erreur{color:#F08A74;font-size:.88rem;margin-top:6px}
+.points{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px 12px;align-items:center}
+.pt{width:12px;height:12px;border-radius:50%;justify-self:center}
+.pt.d{background:var(--laterite)}
+.pt.a{border:3px solid var(--ambre)}
+.trait-v{width:2px;height:22px;background:rgba(239,230,216,.2);justify-self:center}
+
+/* Boutons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:56px;padding:0 22px;border-radius:999px;border:1px solid transparent;font-weight:600;font-size:1.02rem;transition:transform .15s ease,background .2s ease,opacity .2s;text-decoration:none;text-align:center}
+.btn:active{transform:scale(.97)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn-plein{background:var(--laterite);color:#FFF6EC;width:100%}
+.btn-plein:hover{background:#D25D34}
+.btn-ambre{background:var(--ambre);color:var(--nuit);width:100%}
+.btn-ligne{border-color:rgba(239,230,216,.25);background:transparent;width:100%;color:var(--sable)}
+.btn-ligne:hover{border-color:var(--sable)}
+.btn-danger-txt,.lien-txt{background:none;border:0;color:#F08A74;min-height:44px;width:100%;font-weight:600}
+.lien-txt{color:var(--brume);font-weight:500;text-decoration:underline;text-underline-offset:3px}
+.retour{background:none;border:0;padding:6px 0;color:var(--brume);display:inline-flex;align-items:center;gap:6px;font-weight:500;justify-self:start}
+.retour:hover{color:var(--sable)}
+
+/* Raccourcis */
+.raccourcis{display:grid;gap:2px}
+.racc{display:flex;align-items:center;gap:14px;padding:12px 4px;border:0;background:none;text-align:left;border-bottom:1px solid var(--trait);width:100%}
+.racc:last-child{border-bottom:0}
+.racc .ico{width:40px;height:40px;border-radius:12px;background:var(--nuit-3);display:grid;place-items:center;flex:none}
+.racc b{display:block;font-weight:600}
+.racc span{color:var(--brume);font-size:.88rem}
+.racc:hover b{color:var(--ambre)}
+.racc[disabled]{opacity:.5}
+
+/* Options et interrupteurs */
+.option{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border-radius:16px;background:var(--nuit-3);border:1px solid var(--trait)}
+.option b{display:block;font-weight:600}
+.option span{color:var(--brume);font-size:.86rem}
+.inter{position:relative;width:50px;height:30px;flex:none}
+.inter input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer;z-index:1}
+.inter i{position:absolute;inset:0;border-radius:30px;background:rgba(239,230,216,.18);transition:background .2s}
+.inter i::after{content:"";position:absolute;width:24px;height:24px;border-radius:50%;background:var(--sable);top:3px;left:3px;transition:transform .2s}
+.inter input:checked+i{background:var(--feuille)}
+.inter input:checked+i::after{transform:translateX(20px)}
+.inter input:focus-visible+i{outline:2px solid var(--ambre);outline-offset:2px}
+.dispo{display:flex;align-items:center;gap:10px;color:var(--brume);font-size:.9rem}
+.dispo i{width:9px;height:9px;border-radius:50%;background:var(--feuille);flex:none}
+.dispo.non i{background:var(--brume)}
+
+/* Estimation */
+.gros-prix{font-family:var(--display);font-weight:800;font-size:4rem;line-height:.9;color:var(--ambre);font-variant-numeric:tabular-nums}
+.gros-prix small{font-size:.4em;color:var(--sable);margin-left:4px}
+.stats{display:flex;gap:22px;color:var(--brume);font-size:.95rem}
+.stats b{color:var(--sable);font-weight:600}
+.paiements{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.pay{position:relative}
+.pay input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.pay span{display:flex;align-items:center;min-height:50px;padding:0 14px;border-radius:14px;border:1px solid var(--trait);background:var(--nuit-3);font-weight:500;font-size:.95rem;transition:border-color .15s,background .15s}
+.pay input:checked+span{border-color:var(--ambre);background:rgba(242,169,59,.1)}
+.pay input:focus-visible+span{outline:2px solid var(--ambre);outline-offset:2px}
+
+/* Recherche chauffeur */
+.radar{position:relative;height:120px;display:grid;place-items:center}
+.radar i{position:absolute;width:60px;height:60px;border-radius:50%;border:2px solid var(--ambre);opacity:0;animation:onde 2.4s infinite}
+.radar i:nth-child(2){animation-delay:.8s}.radar i:nth-child(3){animation-delay:1.6s}
+.radar b{width:18px;height:18px;border-radius:50%;background:var(--laterite);box-shadow:0 0 0 6px rgba(194,80,42,.25)}
+@keyframes onde{0%{transform:scale(.4);opacity:.9}100%{transform:scale(2.4);opacity:0}}
+.barre{height:4px;border-radius:4px;background:rgba(239,230,216,.12);overflow:hidden}
+.barre i{display:block;height:100%;background:var(--ambre);width:0;transition:width 1s linear}
+
+/* Chauffeur */
+.fiche{display:flex;align-items:center;gap:14px}
+.fiche .photo-c{width:64px;height:64px;border-radius:50%;object-fit:cover;object-position:50% 18%;border:2px solid var(--ambre);flex:none;background:var(--nuit-3);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.6rem}
+.fiche>div{flex:1;min-width:0}
+.fiche b{font-weight:600;font-size:1.1rem}
+.plaque{display:inline-block;margin-top:4px;padding:3px 9px;border-radius:6px;background:var(--sable);color:var(--nuit);font-weight:700;font-size:.85rem;letter-spacing:.06em}
+.eta-g{font-family:var(--display);font-weight:800;font-size:2.6rem;line-height:1;color:var(--ambre);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.eta-g small{display:block;font-family:var(--texte);font-weight:500;font-size:.75rem;color:var(--brume)}
+.code{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:16px;background:rgba(242,169,59,.08);border:1px dashed rgba(242,169,59,.45)}
+.code-chiffres{font-family:var(--display);font-weight:800;font-size:2.2rem;letter-spacing:.18em;color:var(--ambre)}
+.actions3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.act{display:grid;justify-items:center;gap:6px;padding:12px 6px;border-radius:16px;border:1px solid var(--trait);background:var(--nuit-3);font-size:.85rem;font-weight:500;text-decoration:none;color:var(--sable)}
+.act:hover{border-color:rgba(239,230,216,.3)}
+.bandeau{padding:12px 14px;border-radius:14px;background:rgba(94,154,110,.14);border:1px solid rgba(94,154,110,.4);font-weight:500}
+.bandeau.ambre{background:rgba(242,169,59,.1);border-color:rgba(242,169,59,.4)}
+.bandeau.rouge{background:rgba(224,83,61,.12);border-color:rgba(224,83,61,.45)}
+.encart{padding:14px 16px;border-radius:16px;background:var(--nuit-3);border:1px solid var(--trait)}
+.numero{font-family:var(--display);font-weight:800;font-size:1.9rem;letter-spacing:.04em}
+
+/* Urgence */
+.sos{position:relative;width:100%;min-height:56px;border-radius:999px;border:1px solid rgba(224,83,61,.5);background:rgba(224,83,61,.1);color:#F7B3A6;font-weight:600;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.sos .rempli{position:absolute;inset:0;background:var(--danger);transform-origin:left;transform:scaleX(0)}
+.sos span{position:relative}
+
+/* Note */
+.etoiles{display:flex;gap:6px;justify-content:center}
+.etoile{background:none;border:0;padding:4px}
+.etoile svg{width:40px;height:40px;transition:transform .15s}
+.etoile:hover svg{transform:scale(1.08)}
+.puces{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.puce{padding:9px 14px;border-radius:999px;border:1px solid var(--trait);background:var(--nuit-3);font-size:.9rem}
+.puce[aria-pressed="true"]{border-color:var(--feuille);background:rgba(94,154,110,.18)}
+
+/* Historique */
+.histo{display:grid;gap:10px}
+.histo>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:14px 16px;border-radius:16px;background:var(--nuit-3);border:1px solid var(--trait)}
+.histo b{font-weight:600}
+.histo .m{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.etat{font-size:.78rem;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap;justify-self:end}
+.etat.ok{background:rgba(94,154,110,.18);color:#8FCB9E}
+.etat.att{background:rgba(242,169,59,.15);color:var(--ambre)}
+.etat.non{background:rgba(239,230,216,.1);color:var(--brume)}
+
+/* Menu latéral */
+.voile{position:fixed;inset:0;background:rgba(5,10,8,.6);z-index:40;opacity:0;pointer-events:none;transition:opacity .25s}
+.voile.ouvert{opacity:1;pointer-events:auto}
+.menu{position:fixed;top:0;bottom:0;left:0;width:min(320px,86vw);z-index:41;background:var(--nuit-2);border-right:1px solid var(--trait);transform:translateX(-102%);transition:transform .3s cubic-bezier(.2,.8,.2,1);padding:calc(env(safe-area-inset-top,0px) + 22px) 20px 20px max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:6px;overflow-y:auto;visibility:hidden}
+.menu.ouvert{transform:none;visibility:visible}
+.menu .profil{display:flex;align-items:center;gap:12px;padding-bottom:18px;margin-bottom:8px;border-bottom:1px solid var(--trait)}
+.avatar{width:52px;height:52px;border-radius:50%;background:var(--laterite);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.5rem;flex:none}
+.menu button.lien{background:none;border:0;text-align:left;padding:14px 4px;font-size:1.05rem;font-weight:500;border-radius:10px}
+.menu button.lien:hover{color:var(--ambre)}
+.lien-espace{display:block;padding:14px 4px;color:var(--brume);font-weight:500;text-decoration:none}
+.lien-espace:hover{color:var(--sable)}
+.vers-espace{text-align:center;color:var(--brume);font-size:.9rem}
+.vers-espace a{color:var(--sable);font-weight:600;text-underline-offset:3px}
+
+/* Toast et fenêtre */
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 72px);transform:translate(-50%,-20px);z-index:80;background:var(--sable);color:var(--nuit);padding:12px 18px;border-radius:14px;font-weight:600;font-size:.95rem;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:calc(100vw - 32px);text-align:center}
+.toast.vu{opacity:1;transform:translate(-50%,0)}
+.modale{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:20px;background:rgba(5,10,8,.75)}
+.modale>div{background:var(--nuit-2);border:1px solid var(--trait);border-radius:22px;padding:24px;max-width:400px;width:100%;max-height:calc(100vh - 40px);overflow:auto}
+
+/* Marqueurs carte */
+.m-depart{width:22px;height:22px;border-radius:50%;background:var(--laterite);border:4px solid var(--sable);box-shadow:0 0 0 6px rgba(194,80,42,.28)}
+.m-arrivee{width:22px;height:22px;border-radius:50%;background:var(--nuit);border:5px solid var(--ambre);box-shadow:0 0 0 6px rgba(242,169,59,.22)}
+.m-voiture{width:44px;height:44px;display:grid;place-items:center}
+.m-voiture svg{transition:transform .4s linear;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+.m-taxi{opacity:.85}
+.m-quartier{font:600 12px/1 var(--texte);color:#0D1A15;background:rgba(239,230,216,.92);padding:4px 8px;border-radius:999px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25);transform:translate(-50%,-50%);display:inline-block;pointer-events:none}
+.carte-loin .m-quartier{display:none}
+.attente-ecran{display:grid;place-items:center;min-height:120px}
+.attente-ecran i{width:28px;height:28px;border-radius:50%;border:3px solid rgba(239,230,216,.2);border-top-color:var(--ambre);animation:tourne 1s linear infinite}
+@keyframes tourne{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<div id="carte" role="application" aria-label="Carte de Daloa"></div>
+
+<div class="haut">
+  <button class="rond" id="btn-menu" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="menu" disabled>
+    <svg width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M1 1h18M1 7h18M1 13h12" stroke="#EFE6D8" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+  <div class="marque"><svg width="24" height="24" viewBox="0 0 34 34" aria-hidden="true"><circle cx="7" cy="25" r="4.5" fill="#C2502A"/><path d="M7 25 C 7 12, 27 22, 27 9" fill="none" stroke="#F2A93B" stroke-width="2.6" stroke-linecap="round"/><circle cx="27" cy="9" r="4.5" fill="none" stroke="#F2A93B" stroke-width="2.6"/></svg>Dallas Trak</div>
+  <button class="rond" id="btn-centrer" aria-label="Me localiser">
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="4" fill="none" stroke="#F2A93B" stroke-width="2"/><path d="M10 1v3M10 16v3M1 10h3M16 10h3" stroke="#EFE6D8" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+</div>
+
+<button class="vue-carte" id="btn-vue" aria-pressed="false">Satellite</button>
+
+<div class="voile" id="voile"></div>
+<nav class="menu" id="menu" aria-label="Menu" aria-hidden="true">
+  <div class="profil"><div class="avatar" id="m-initiale">D</div><div><b id="m-nom"></b><p class="mute petit" id="m-tel"></p></div></div>
+  <button class="lien" data-menu="historique">Mes courses</button>
+  <button class="lien" data-menu="favoris">Adresses favorites</button>
+  <button class="lien" data-menu="contacts">Contacts d'urgence</button>
+  <button class="lien" data-menu="aide">Aide et objets oubliés</button>
+  <button class="lien" data-menu="reglages">Réglages</button>
+  <div style="margin-top:auto;padding-top:14px;border-top:1px solid var(--trait);display:grid;gap:4px">
+    <button class="lien" data-installer data-si-installable>Installer l’application</button>
+    <a href="chauffeur.html" class="lien-espace">Passer à l’espace chauffeur</a>
+  </div>
+</nav>
+
+<section class="panneau" id="panneau" aria-label="Commande de course">
+  <div class="poignee" aria-hidden="true"></div>
+  <div class="contenu" id="contenu"><div class="attente-ecran"><i></i></div></div>
+</section>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="commun.js"></script>
+<script>
+(function(){
+'use strict';
+var esc=DT.esc,fmt=DT.fmt,toast=DT.toast;
+var sb=DT.client('dt-session');
+try{localStorage.setItem('dt-espace','client')}catch(e){}
+
+/* ---------- État ---------- */
+var S={
+  ecran:'chargement',
+  profil:null,
+  depart:{lat:DT.DALOA[0],lng:DT.DALOA[1],label:'Ma position',repere:''},
+  arrivee:null,route:null,km:0,min:0,
+  paiement:'especes',
+  proche:{actif:false,nom:'',tel:''},
+  plan:{actif:false,quand:''},
+  choixCarte:false,
+  donneesLegeres:lire('dt-leger')==='1',
+  vue:'plan',
+  course:null,code:'',photo:null,etaMin:null,
+  note:0,tags:[],
+  historique:null,
+  taxis:[]
+};
+function lire(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function ecrire(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+/* ---------- Carte ---------- */
+var carte=DT.carte('carte');
+function poserTuiles(){
+  carte.poserTuiles(S.vue,S.donneesLegeres);
+  var b=document.getElementById('btn-vue');
+  b.textContent=S.vue==='satellite'&&!S.donneesLegeres?'Plan':'Satellite';
+  b.setAttribute('aria-pressed',String(S.vue==='satellite'));
+  b.disabled=S.donneesLegeres;b.title=S.donneesLegeres?'Indisponible en économie de données':'';
+}
+poserTuiles();
+document.getElementById('btn-vue').addEventListener('click',function(){S.vue=S.vue==='satellite'?'plan':'satellite';poserTuiles()});
+
+var mDepart=L.marker([S.depart.lat,S.depart.lng],{icon:DT.icone('m-depart'),draggable:true,keyboard:true,title:'Point de départ'}).addTo(carte);
+var mArrivee=null,ligneFond=null,ligne=null,mVoiture=null,mTaxis=[];
+
+mDepart.on('dragend',function(){
+  var p=mDepart.getLatLng();S.depart.lat=p.lat;S.depart.lng=p.lng;majAdresseDepart();
+  if(S.arrivee&&S.ecran==='estimation')calculer();
+});
+carte.on('click',function(e){
+  if(!S.choixCarte)return;
+  S.choixCarte=false;
+  S.arrivee={n:'Point choisi sur la carte',d:'Daloa',lat:e.latlng.lat,lng:e.latlng.lng};
+  calculer();
+  DT.adresse(e.latlng.lat,e.latlng.lng).then(function(a){if(a&&S.arrivee&&S.arrivee.lat===e.latlng.lat){S.arrivee.n=a;S.arrivee.d='Point choisi sur la carte';if(S.ecran==='estimation')render()}});
+});
+
+function majAdresseDepart(){
+  S.depart.label='Recherche de l’adresse…';if(S.ecran==='accueil')render();
+  var lat=S.depart.lat,lng=S.depart.lng;
+  DT.adresse(lat,lng).then(function(a){
+    if(S.depart.lat!==lat||S.depart.lng!==lng)return;
+    S.depart.label=a||'Point choisi sur la carte';
+    if(S.ecran==='accueil'||S.ecran==='estimation')render();
+  });
+}
+function effacerTrajet(){
+  [mArrivee,ligneFond,ligne,mVoiture].forEach(function(l){if(l)carte.removeLayer(l)});
+  mArrivee=ligneFond=ligne=mVoiture=null;
+}
+function dessinerTrajet(coords){
+  if(ligneFond)carte.removeLayer(ligneFond);if(ligne)carte.removeLayer(ligne);
+  ligneFond=L.polyline(coords,{color:'#0D1A15',weight:9,opacity:.8,lineCap:'round'}).addTo(carte);
+  ligne=L.polyline(coords,{color:'#F2A93B',weight:5,opacity:1,lineCap:'round'}).addTo(carte);
+}
+function cadrer(points){
+  if(!points||!points.length)return;
+  var desktop=window.innerWidth>=860;
+  carte.fitBounds(L.latLngBounds(points),{paddingTopLeft:[desktop?460:40,90],paddingBottomRight:[40,desktop?40:Math.round(window.innerHeight*.5)],maxZoom:16});
+}
+
+// Voitures réellement en service autour du client
+var taxisT=null;
+function majTaxis(){
+  clearTimeout(taxisT);
+  if(!S.profil||['accueil','lieux','estimation','calcul'].indexOf(S.ecran)<0){afficherTaxis([]);return}
+  sb.rpc('dt_taxis_proches',{p_lat:S.depart.lat,p_lng:S.depart.lng}).then(function(r){
+    var liste=(r&&r.data)||[];var avant=S.taxis.length;S.taxis=liste;afficherTaxis(liste);
+    if(S.ecran==='accueil'&&avant!==liste.length){var el=document.getElementById('dispo');if(el)el.outerHTML=dispoHTML()}
+  });
+  taxisT=setTimeout(majTaxis,15000);
+}
+function afficherTaxis(liste){
+  mTaxis.forEach(function(m){carte.removeLayer(m)});mTaxis=[];
+  liste.forEach(function(t){var m=L.marker([t.lat,t.lng],{icon:DT.iconeVoiture('m-taxi'),interactive:false,keyboard:false}).addTo(carte);DT.orienter(m,t.cap);mTaxis.push(m)});
+}
+function dispoHTML(){
+  var n=S.taxis.length;
+  return '<p class="dispo'+(n?'':' non')+'" id="dispo"><i></i>'+(n?n+(n>1?' voitures disponibles':' voiture disponible')+' près de vous':'Aucune voiture en service près de vous pour l’instant')+'</p>';
+}
+
+/* ---------- Écrans ---------- */
+var E={};
+var ICO={
+  maison:'<svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 9l7-6 7 6v8H3z" fill="none" stroke="#F2A93B" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  travail:'<svg width="20" height="20" viewBox="0 0 20 20"><rect x="2.5" y="6" width="15" height="11" rx="2" fill="none" stroke="#F2A93B" stroke-width="1.8"/><path d="M7 6V4h6v2" fill="none" stroke="#F2A93B" stroke-width="1.8"/></svg>',
+  horloge:'<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" fill="none" stroke="#9AAEA2" stroke-width="1.8"/><path d="M10 6v4l3 2" fill="none" stroke="#9AAEA2" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  lieu:'<svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 18s6-5.5 6-10a6 6 0 10-12 0c0 4.5 6 10 6 10z" fill="none" stroke="#9AAEA2" stroke-width="1.8"/><circle cx="10" cy="8" r="2" fill="#9AAEA2"/></svg>',
+  carte:'<svg width="20" height="20" viewBox="0 0 20 20"><path d="M2 5l5-2 6 2 5-2v12l-5 2-6-2-5 2z" fill="none" stroke="#F2A93B" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  tel:'<svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 2h3l1.5 4-2 1.5a10 10 0 005 5l1.5-2 4 1.5v3a2 2 0 01-2 2A15 15 0 013 4a2 2 0 012-2z" fill="none" stroke="#EFE6D8" stroke-width="1.7" stroke-linejoin="round"/></svg>',
+  partage:'<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="15" cy="4" r="2.5" fill="none" stroke="#EFE6D8" stroke-width="1.7"/><circle cx="5" cy="10" r="2.5" fill="none" stroke="#EFE6D8" stroke-width="1.7"/><circle cx="15" cy="16" r="2.5" fill="none" stroke="#EFE6D8" stroke-width="1.7"/><path d="M7.2 8.8l5.6-3.6M7.2 11.2l5.6 3.6" stroke="#EFE6D8" stroke-width="1.7"/></svg>',
+  fermer:'<svg width="20" height="20" viewBox="0 0 20 20"><path d="M5 5l10 10M15 5L5 15" stroke="#EFE6D8" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  gauche:'<svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+var ETIQUETTES=['Ponctuel','Conduite prudente','Voiture propre','Très poli','Bon itinéraire'];
+function etoileSVG(plein){return '<svg viewBox="0 0 24 24"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8z" fill="'+(plein?'#F2A93B':'none')+'" stroke="'+(plein?'#F2A93B':'#9AAEA2')+'" stroke-width="1.6" stroke-linejoin="round"/></svg>'}
+function retour(vers){return '<button class="retour" data-aller="'+vers+'">'+ICO.gauche+'Retour</button>'}
+function prenom(n){return String(n||'').split(' ')[0]}
+function salut(){var h=new Date().getHours();return h<18&&h>=5?'Bonjour':'Bonsoir'}
+
+E.chargement=function(){return '<div class="attente-ecran"><i></i></div>'};
+
+E.connexion=function(){
+  return '<div class="pile"><div><h1>Bienvenue sur Dallas Trak</h1><p class="mute" style="margin-top:8px">Le taxi qui vient jusqu’à votre porte, partout à Daloa.</p></div>'+
+    '<form id="f-connexion" class="pile" novalidate>'+
+    '<div><label class="etiq" for="c-tel">Numéro de téléphone</label><input class="saisie" id="c-tel" inputmode="tel" autocomplete="tel" maxlength="14" placeholder="07 00 00 00 00"></div>'+
+    '<div><label class="etiq" for="c-mdp">Mot de passe</label><input class="saisie" id="c-mdp" type="password" autocomplete="current-password"></div>'+
+    '<div class="erreur" id="err" hidden></div>'+
+    '<button class="btn btn-plein" type="submit" id="b-ok">Se connecter</button></form>'+
+    '<button class="btn btn-ligne" data-aller="inscription">Créer un compte</button>'+
+    '<button class="lien-txt" id="oubli">Mot de passe oublié ?</button>'+
+    '<p class="mute petit" id="oubli-txt" hidden></p>'+
+    DT.blocInstallation(false)+
+    '<p class="vers-espace">Vous êtes chauffeur ? <a href="chauffeur.html">Espace chauffeur</a></p></div>';
+};
+E.inscription=function(){
+  return '<div class="pile">'+retour('connexion')+'<div><h2>Créer mon compte</h2><p class="mute" style="margin-top:8px">Votre numéro sert à vous connecter et au chauffeur pour vous appeler.</p></div>'+
+    '<form id="f-inscription" class="pile" novalidate>'+
+    '<div><label class="etiq" for="i-nom">Nom et prénom</label><input class="saisie" id="i-nom" autocomplete="name" maxlength="60"></div>'+
+    '<div><label class="etiq" for="i-tel">Numéro de téléphone</label><input class="saisie" id="i-tel" inputmode="tel" autocomplete="tel" maxlength="14" placeholder="07 00 00 00 00"></div>'+
+    '<div><label class="etiq" for="i-mdp">Mot de passe (6 caractères minimum)</label><input class="saisie" id="i-mdp" type="password" autocomplete="new-password"></div>'+
+    '<div><label class="etiq" for="i-mdp2">Confirmez le mot de passe</label><input class="saisie" id="i-mdp2" type="password" autocomplete="new-password"></div>'+
+    '<div class="erreur" id="err" hidden></div>'+
+    '<button class="btn btn-plein" type="submit" id="b-ok">Créer mon compte</button></form></div>';
+};
+E.bloque=function(){
+  return '<div class="pile"><h2>Compte suspendu</h2><p class="mute">Votre compte Dallas Trak est suspendu. Contactez le service client pour en savoir plus.</p>'+
+    (DT.CONFIG.service_tel?'<a class="btn btn-ligne" href="tel:'+esc(DT.CONFIG.service_tel)+'">Appeler le service client</a>':'')+
+    '<button class="lien-txt" id="deconnexion">Se déconnecter</button></div>';
+};
+
+E.accueil=function(){
+  var f=(S.profil&&S.profil.favoris)||{},racc='';
+  if(f.maison)racc+='<button class="racc" data-fav="maison"><span class="ico">'+ICO.maison+'</span><div><b>Maison</b><span>'+esc(f.maison.label)+'</span></div></button>';
+  if(f.travail)racc+='<button class="racc" data-fav="travail"><span class="ico">'+ICO.travail+'</span><div><b>Travail</b><span>'+esc(f.travail.label)+'</span></div></button>';
+  var der=(S.historique||[]).filter(function(c){return c.statut==='terminee'})[0];
+  if(der)racc+='<button class="racc" data-recent="1"><span class="ico">'+ICO.horloge+'</span><div><b>'+esc(der.arrivee_label)+'</b><span>Dernière course</span></div></button>';
+  var planif=(S.historique||[]).filter(function(c){return c.statut==='planifiee'}).length;
+  return '<div class="pile">'+
+    '<div><p class="mute">'+salut()+', '+esc(prenom(S.profil.nom))+'</p><h1>Où allez-vous ?</h1></div>'+
+    '<button class="champ-btn" data-aller="lieux">'+ICO.lieu+'<span>Chercher une destination</span></button>'+
+    (racc?'<div class="raccourcis">'+racc+'</div>':'')+
+    '<div class="option"><div><b>Départ : '+esc(S.depart.label)+'</b><span>Déplacez le point rouge sur la carte si besoin</span></div></div>'+
+    dispoHTML()+
+    (planif?'<button class="racc" data-aller="historique"><span class="ico">'+ICO.horloge+'</span><div><b>'+planif+' course'+(planif>1?'s':'')+' planifiée'+(planif>1?'s':'')+'</b><span>Voir ou annuler</span></div></button>':'')+
+    DT.blocInstallation(true)+
+  '</div>';
+};
+
+E.lieux=function(){
+  var liste=DT.LIEUX.map(function(l,i){return '<button class="racc" data-lieu="'+i+'"><span class="ico">'+ICO.lieu+'</span><div><b>'+esc(l.n)+'</b><span>'+esc(l.d)+'</span></div></button>'}).join('');
+  return '<div class="pile">'+retour('accueil')+
+    '<div class="points"><span class="pt d"></span><div><label class="etiq" for="repere">Point de repère pour le chauffeur</label><input class="saisie" id="repere" maxlength="100" placeholder="Ex. portail bleu après la pharmacie" value="'+esc(S.depart.repere)+'"></div>'+
+    '<span class="trait-v"></span><span></span>'+
+    '<span class="pt a"></span><div><label class="etiq" for="cherche">Destination</label><input class="saisie" id="cherche" placeholder="Quartier, marché, gare, lieu connu" autocomplete="off"></div></div>'+
+    '<button class="racc" id="choix-carte"><span class="ico">'+ICO.carte+'</span><div><b>Choisir sur la carte</b><span>Touchez l’endroit exact où vous allez</span></div></button>'+
+    '<p class="resultats-titre" id="titre-res" hidden>Résultats dans Daloa</p>'+
+    '<div class="raccourcis" id="resultats"></div>'+
+    '<p class="resultats-titre" id="titre-liste">Lieux et quartiers de Daloa</p>'+
+    '<div class="raccourcis" id="liste-lieux">'+liste+'</div>'+
+    '<p class="mute petit">Rues, quartiers et lieux réels de Daloa, données OpenStreetMap.</p>'+
+  '</div>';
+};
+
+E.calcul=function(){
+  return '<div class="pile" style="padding:18px 0"><div class="radar" style="height:70px"><i></i><i></i><b></b></div><p class="mute centre">Calcul du trajet et du prix…</p></div>';
+};
+
+E.estimation=function(){
+  var p=DT.prix(S.km);
+  var pays=Object.keys(DT.PAIEMENTS).map(function(k){return '<label class="pay"><input type="radio" name="pay" value="'+k+'"'+(S.paiement===k?' checked':'')+'><span>'+DT.PAIEMENTS[k]+'</span></label>'}).join('');
+  var procheChamps=S.proche.actif?
+    '<div class="pile" style="gap:10px"><div><label class="etiq" for="p-nom">Nom de la personne</label><input class="saisie" id="p-nom" maxlength="40" value="'+esc(S.proche.nom)+'" placeholder="Ex. Maman"></div>'+
+    '<div><label class="etiq" for="p-tel">Son numéro (le chauffeur l’appellera)</label><input class="saisie" id="p-tel" inputmode="tel" maxlength="14" value="'+esc(S.proche.tel)+'" placeholder="07 00 00 00 00"><div class="erreur" id="err-tel" hidden>Entrez un numéro à 10 chiffres, par exemple 07 12 34 56 78.</div></div></div>':'';
+  var planChamp=S.plan.actif?'<div><label class="etiq" for="quand">Date et heure de départ</label><input class="saisie" type="datetime-local" id="quand" value="'+esc(S.plan.quand)+'"><div class="erreur" id="err-quand" hidden>Choisissez une heure entre 30 minutes et 7 jours à l’avance.</div></div>':'';
+  return '<div class="pile">'+retour('lieux')+
+    '<div class="points"><span class="pt d"></span><div><b>'+esc(S.depart.label)+'</b>'+(S.depart.repere?'<p class="mute petit">'+esc(S.depart.repere)+'</p>':'')+'</div><span class="trait-v"></span><span></span><span class="pt a"></span><div><b>'+esc(S.arrivee.n)+'</b><p class="mute petit">'+esc(S.arrivee.d)+'</p></div></div>'+
+    '<div class="entre" style="align-items:flex-end"><div class="gros-prix">'+fmt(p)+'<small>F</small></div><div class="stats"><span><b>'+DT.km(S.km)+'</b> km</span><span><b>'+S.min+'</b> min</span></div></div>'+
+    '<p class="mute petit">Prix fixé à la commande. Il ne change pas pendant le trajet.</p>'+
+    '<div><p class="etiq" id="lbl-pay">Paiement</p><div class="paiements" role="radiogroup" aria-labelledby="lbl-pay">'+pays+'</div>'+
+      (S.paiement!=='especes'?'<p class="mute petit" style="margin-top:8px">Vous payez par '+DT.PAIEMENTS[S.paiement]+' sur le numéro du chauffeur, affiché à l’arrivée.</p>':'')+'</div>'+
+    '<div class="option"><div><b>Pour un proche</b><span>Le chauffeur appelle la personne, vous suivez le trajet</span></div><label class="inter"><input type="checkbox" id="t-proche" aria-label="Commander pour un proche"'+(S.proche.actif?' checked':'')+'><i></i></label></div>'+procheChamps+
+    '<div class="option"><div><b>Planifier</b><span>Pour un départ tôt le matin ou plus tard</span></div><label class="inter"><input type="checkbox" id="t-plan" aria-label="Planifier la course"'+(S.plan.actif?' checked':'')+'><i></i></label></div>'+planChamp+
+    '<div class="erreur" id="err" hidden></div>'+
+    '<button class="btn btn-plein" id="commander">'+(S.plan.actif?'Planifier la course · ':'Commander · ')+fmt(p)+' F</button>'+
+  '</div>';
+};
+
+E.recherche=function(){
+  var c=S.course||{};
+  return '<div class="pile centre"><div class="radar"><i></i><i></i><i></i><b></b></div>'+
+    '<h2>Recherche du chauffeur le plus proche</h2><p class="mute">Votre demande est envoyée aux voitures disponibles autour de vous. '+(c.planifiee_pour?'Course planifiée pour '+esc(DT.quand(c.planifiee_pour))+'.':'')+'</p>'+
+    '<div class="barre" aria-hidden="true"><i id="barre"></i></div>'+
+    '<p class="mute petit">'+fmt(c.prix)+' F · '+esc(c.arrivee_label||'')+'</p>'+
+    DT.blocNotifs('client')+
+    '<button class="btn btn-ligne" id="annuler">Annuler la demande</button></div>';
+};
+
+E.aucun=function(){
+  return '<div class="pile centre"><h2>Aucun chauffeur disponible</h2><p class="mute">Toutes les voitures proches sont occupées pour le moment. Réessayez dans quelques minutes.</p>'+
+    '<button class="btn btn-plein" id="reessayer">Réessayer</button><button class="btn btn-ligne" data-aller="accueil">Retour à l’accueil</button></div>';
+};
+
+E.chauffeur=function(){
+  var c=S.course,arrive=c.statut==='arrivee';
+  var photo=S.photo?'<img class="photo-c" src="'+esc(S.photo)+'" alt="Photo de '+esc(c.chauffeur_nom)+'">':'<div class="photo-c">'+esc(String(c.chauffeur_nom||'?').charAt(0))+'</div>';
+  return '<div class="pile">'+
+    '<div class="bandeau'+(arrive?'':' ambre')+'">'+(arrive?'Votre chauffeur est arrivé. Vérifiez le code avant de monter.':'Votre chauffeur arrive')+'</div>'+
+    '<div class="fiche">'+photo+'<div><b>'+esc(c.chauffeur_nom)+'</b><p class="mute petit">'+esc(c.voiture||'')+(c.chauffeur_note?' · note '+String(c.chauffeur_note).replace('.',','):' · nouveau chauffeur')+'</p><span class="plaque">'+esc(c.plaque||'')+'</span></div>'+
+      '<div class="eta-g" id="eta">'+(arrive?'0':(S.etaMin==null?'…':Math.max(1,Math.round(S.etaMin))))+'<small>min</small></div></div>'+
+    '<div class="code"><div><b>Code de course</b><p class="mute petit">Le chauffeur doit vous dire ce code</p></div><span class="code-chiffres">'+esc(S.code||'····')+'</span></div>'+
+    (c.proche_nom?'<p class="mute petit">Le chauffeur appellera '+esc(c.proche_nom)+' au '+esc(DT.telAff(c.proche_tel))+'.</p>':'')+
+    '<div class="actions3"><a class="act" href="tel:'+esc(c.chauffeur_tel)+'">'+ICO.tel+'Appeler</a><button class="act" id="partager">'+ICO.partage+'Partager</button><button class="act" id="annuler">'+ICO.fermer+'Annuler</button></div>'+
+  '</div>';
+};
+
+E.course=function(){
+  var c=S.course;
+  return '<div class="pile">'+
+    '<div class="entre"><div><p class="mute">En route vers</p><h2>'+esc(c.arrivee_label)+'</h2></div><div class="eta-g" id="eta">'+(S.etaMin==null?c.minutes:Math.max(1,Math.round(S.etaMin)))+'<small>min</small></div></div>'+
+    '<div class="fiche">'+(S.photo?'<img class="photo-c" src="'+esc(S.photo)+'" alt="" style="width:48px;height:48px">':'')+'<div><b>'+esc(c.chauffeur_nom)+'</b><p class="mute petit">'+esc(c.voiture||'')+' · '+esc(c.plaque||'')+'</p></div></div>'+
+    '<button class="btn btn-ligne" id="partager">'+ICO.partage+'Partager mon trajet en direct</button>'+
+    '<button class="sos" id="sos" aria-describedby="sos-aide"><span class="rempli" id="sos-rempli"></span><span>Maintenir 2 secondes pour l’urgence</span></button>'+
+    '<p class="mute petit" id="sos-aide">Prévient l’équipe Dallas Trak avec votre position et vous aide à prévenir vos proches.</p>'+
+  '</div>';
+};
+
+E.fin=function(){
+  var c=S.course,esp=c.paiement==='especes';
+  var etoiles='';for(var i=1;i<=5;i++){etoiles+='<button class="etoile" data-note="'+i+'" aria-label="'+i+' étoile'+(i>1?'s':'')+'" aria-pressed="'+(S.note===i)+'">'+etoileSVG(i<=S.note)+'</button>'}
+  var puces=ETIQUETTES.map(function(t){return '<button class="puce" data-tag="'+esc(t)+'" aria-pressed="'+(S.tags.indexOf(t)>-1)+'">'+esc(t)+'</button>'}).join('');
+  var paiement=c.paye?'<div class="bandeau">Paiement confirmé par le chauffeur.</div>':
+    (esp?'<p>'+(c.proche_nom?esc(c.proche_nom)+' remet':'Remettez')+' <b>'+fmt(c.prix)+' F</b> en espèces au chauffeur.</p>':
+      '<div class="encart"><p class="mute petit">Envoyez '+fmt(c.prix)+' F par '+DT.PAIEMENTS[c.paiement]+' à '+esc(prenom(c.chauffeur_nom))+'</p><div class="entre"><span class="numero">'+esc(DT.telAff(c.chauffeur_momo))+'</span><button class="act" id="copier" style="padding:10px 14px">Copier</button></div></div>');
+  return '<div class="pile centre">'+
+    '<p class="mute">'+(c.proche_nom?'Course terminée : '+esc(c.proche_nom)+' est à ':'Vous êtes arrivé à ')+esc(c.arrivee_label)+'</p>'+
+    '<div class="gros-prix">'+fmt(c.prix)+'<small>F</small></div>'+paiement+
+    '<div style="border-top:1px solid var(--trait);padding-top:16px"><h2 style="font-size:1.5rem">Comment s’est passée la course ?</h2></div>'+
+    '<div class="etoiles" role="group" aria-label="Note du chauffeur">'+etoiles+'</div>'+
+    '<div class="puces">'+puces+'</div>'+
+    '<textarea class="saisie" id="commentaire" maxlength="300" placeholder="Un mot pour l’équipe (facultatif)"></textarea>'+
+    '<button class="btn btn-plein" id="noter"'+(S.note?'':' disabled')+'>Envoyer la note</button>'+
+    '<button class="lien-txt" id="passer">Plus tard</button>'+
+    '<button class="btn-danger-txt" data-aller="aide">Signaler un problème ou un objet oublié</button>'+
+  '</div>';
+};
+
+E.planifie=function(){
+  var c=S.course;
+  return '<div class="pile centre"><h2>Course planifiée</h2><p class="mute">'+esc(DT.quand(c.planifiee_pour))+'</p><p>'+esc(c.depart_label)+' vers '+esc(c.arrivee_label)+' · '+fmt(c.prix)+' F</p><p class="mute petit">Nous cherchons un chauffeur 20 minutes avant. Ouvrez l’application à ce moment pour le suivre.</p><button class="btn btn-plein" data-aller="accueil">Terminé</button></div>';
+};
+
+var LIB={planifiee:['Planifiée','att'],recherche:['Recherche','att'],acceptee:['En cours','att'],arrivee:['En cours','att'],en_cours:['En cours','att'],terminee:['Terminée','ok'],annulee:['Annulée','non'],expiree:['Sans chauffeur','non']};
+E.historique=function(){
+  if(!S.historique)return '<div class="pile">'+retour('accueil')+'<h2>Mes courses</h2><div class="attente-ecran"><i></i></div></div>';
+  var l=S.historique.map(function(h){
+    var e=LIB[h.statut]||['',''];
+    return '<div><b>'+esc(h.depart_label)+' vers '+esc(h.arrivee_label)+'</b><span class="m">'+fmt(h.prix)+' F</span>'+
+      '<span class="mute petit">'+esc(DT.quand(h.planifiee_pour&&h.statut==='planifiee'?h.planifiee_pour:h.cree_le))+' · '+esc(DT.PAIEMENTS[h.paiement]||'')+'</span><span class="etat '+e[1]+'">'+e[0]+'</span>'+
+      (h.statut==='planifiee'?'<button class="btn-danger-txt" style="grid-column:1/-1;min-height:36px;text-align:left" data-annuler-plan="'+h.id+'">Annuler cette course planifiée</button>':'')+
+      (h.statut==='terminee'&&h.chauffeur_tel&&Date.now()-new Date(h.cree_le).getTime()<3*864e5?'<a class="mute petit" style="grid-column:1/-1;color:var(--ambre)" href="tel:'+esc(h.chauffeur_tel)+'">Appeler '+esc(prenom(h.chauffeur_nom))+', le chauffeur (objet oublié)</a>':'')+'</div>';
+  }).join('');
+  return '<div class="pile">'+retour('accueil')+'<h2>Mes courses</h2>'+(l?'<div class="histo">'+l+'</div>':'<p class="mute">Vous n’avez pas encore de course.</p>')+'</div>';
+};
+E.favoris=function(){
+  var f=S.profil.favoris||{};
+  function ligne(k,nom,ico){
+    return '<div class="option"><div style="display:flex;gap:12px;align-items:center"><span class="ico" style="width:40px;height:40px;border-radius:12px;background:var(--nuit-2);display:grid;place-items:center">'+ico+'</span><div><b>'+nom+'</b><span>'+(f[k]?esc(f[k].label):'Non enregistrée')+'</span></div></div>'+
+      (f[k]?'<button class="retour" data-fav-suppr="'+k+'">Retirer</button>':'')+'</div>'+
+      '<button class="btn btn-ligne" data-fav-enr="'+k+'">Enregistrer mon point de départ actuel comme '+nom.toLowerCase()+'</button>';
+  }
+  return '<div class="pile">'+retour('accueil')+'<h2>Adresses favorites</h2><p class="mute">Point de départ actuel : '+esc(S.depart.label)+'</p>'+ligne('maison','Maison',ICO.maison)+ligne('travail','Travail',ICO.travail)+'</div>';
+};
+E.contacts=function(){
+  var cs=S.profil.contacts||[];
+  var l=cs.map(function(c,i){return '<div class="option"><div><b>'+esc(c.nom)+'</b><span>'+esc(DT.telAff(c.tel))+'</span></div><button class="retour" data-suppr="'+i+'">Retirer</button></div>'}).join('');
+  return '<div class="pile">'+retour('accueil')+'<h2>Contacts d’urgence</h2><p class="mute">En cas d’urgence pendant une course, vous pourrez les prévenir en un geste avec le lien de votre trajet.</p>'+l+
+    (cs.length<3?'<div><label class="etiq" for="c-nom">Nom</label><input class="saisie" id="c-nom" maxlength="30"></div><div><label class="etiq" for="c-tel">Numéro</label><input class="saisie" id="c-tel" inputmode="tel" maxlength="14" placeholder="07 00 00 00 00"><div class="erreur" id="err-c" hidden>Entrez un nom et un numéro à 10 chiffres.</div></div>'+
+    '<button class="btn btn-plein" id="c-ajout">Ajouter le contact</button>':'<p class="mute petit">Trois contacts au maximum.</p>')+'</div>';
+};
+E.aide=function(){
+  var t=DT.CONFIG.service_tel;
+  return '<div class="pile">'+retour('accueil')+'<h2>Aide</h2>'+
+    '<div class="option"><div><b>Objet oublié dans une voiture</b><span>Appelez le chauffeur depuis « Mes courses » ou le service client, qui le contacte pour vous</span></div></div>'+
+    '<div class="option"><div><b>Problème de paiement</b><span>Montant, Mobile Money, monnaie rendue</span></div></div>'+
+    '<div class="option"><div><b>Signaler un chauffeur</b><span>Comportement, conduite, état de la voiture</span></div></div>'+
+    (t?'<a class="btn btn-plein" href="tel:'+esc(t)+'">Appeler le service client · '+esc(DT.telAff(t))+'</a>':'<p class="mute petit">Le numéro du service client sera bientôt disponible.</p>')+
+    '<p class="mute petit">Urgence vitale : Police secours 110 · Sapeurs-pompiers 180 · SAMU 185</p></div>';
+};
+E.reglages=function(){
+  return '<div class="pile">'+retour('accueil')+'<h2>Réglages</h2>'+
+    '<div><label class="etiq" for="r-nom">Votre nom</label><input class="saisie" id="r-nom" maxlength="60" value="'+esc(S.profil.nom)+'"></div>'+
+    '<button class="btn btn-ligne" id="r-enr">Enregistrer le nom</button>'+
+    '<div class="option"><div><b>Économie de données</b><span>Carte plan uniquement, plus légère pour les petits forfaits</span></div><label class="inter"><input type="checkbox" id="t-donnees" aria-label="Économie de données"'+(S.donneesLegeres?' checked':'')+'><i></i></label></div>'+
+    '<div class="option"><div><b>Installer sur mon téléphone</b><span>Menu du navigateur, puis « Ajouter à l’écran d’accueil »</span></div></div>'+
+    '<p class="mute petit">Compte : '+esc(DT.telAff(S.profil.telephone))+'</p>'+
+    '<button class="btn-danger-txt" id="deconnexion">Se déconnecter</button></div>';
+};
+
+/* ---------- Rendu ---------- */
+var contenu=document.getElementById('contenu'),panneau=document.getElementById('panneau');
+function render(){
+  contenu.innerHTML=E[S.ecran]();
+  contenu.scrollTop=0;
+  panneau.classList.toggle('plein',S.ecran==='inscription');
+  lier();
+}
+function aller(ecran){
+  if(ecran==='accueil')remiseAZero();
+  S.ecran=ecran;render();
+  if(ecran==='lieux'){var c=document.getElementById('cherche');if(c&&window.innerWidth>=860)c.focus()}
+  if(ecran==='historique')chargerHistorique();
+  majTaxis();
+}
+function remiseAZero(){
+  arreterSuivi();effacerTrajet();
+  S.arrivee=null;S.route=null;S.course=null;S.code='';S.photo=null;S.etaMin=null;S.note=0;S.tags=[];S.choixCarte=false;
+  S.proche={actif:false,nom:'',tel:''};S.plan={actif:false,quand:''};
+  mDepart.setLatLng([S.depart.lat,S.depart.lng]);
+  mDepart.dragging.enable();
+  carte.setView([S.depart.lat,S.depart.lng],15);
+}
+function erreur(msg){var e=document.getElementById('err');if(e){e.textContent=msg;e.hidden=false}else toast(msg,true)}
+function occupe(b,txt){if(!b)return function(){};var a=b.textContent;b.disabled=true;b.textContent=txt;return function(){b.disabled=false;b.textContent=a}}
+
+function lier(){
+  contenu.querySelectorAll('[data-aller]').forEach(function(b){b.addEventListener('click',function(){aller(b.getAttribute('data-aller'))})});
+  contenu.querySelectorAll('[data-lieu]').forEach(function(b){b.addEventListener('click',function(){choisir(DT.LIEUX[+b.getAttribute('data-lieu')])})});
+  var $=function(id){return document.getElementById(id)};
+  var e=S.ecran;
+
+  if(e==='connexion'){
+    $('f-connexion').addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var tel=$('c-tel').value,mdp=$('c-mdp').value;
+      if(!DT.telValide(tel)){erreur('Entrez votre numéro à 10 chiffres.');return}
+      if(!mdp){erreur('Entrez votre mot de passe.');return}
+      var fin=occupe($('b-ok'),'Connexion…');
+      DT.connecter(sb,tel,mdp).then(demarrerSession).catch(function(x){fin();erreur(DT.msg(x))});
+    });
+    $('oubli').addEventListener('click',function(){
+      var p=$('oubli-txt'),t=DT.CONFIG.service_tel;
+      p.innerHTML=t?'Appelez le service client Dallas Trak au <a href="tel:'+esc(t)+'" style="color:var(--ambre)">'+esc(DT.telAff(t))+'</a>. Un nouveau mot de passe vous sera donné après vérification de votre identité.':'Contactez le service client Dallas Trak : un nouveau mot de passe vous sera donné après vérification de votre identité.';
+      p.hidden=false;
+    });
+  }
+  if(e==='inscription'){
+    $('f-inscription').addEventListener('submit',function(ev){
+      ev.preventDefault();
+      var nom=$('i-nom').value.trim(),tel=$('i-tel').value,m1=$('i-mdp').value,m2=$('i-mdp2').value;
+      if(nom.length<2){erreur('Indiquez votre nom et votre prénom.');return}
+      if(!DT.telValide(tel)){erreur('Entrez un numéro à 10 chiffres, par exemple 07 12 34 56 78.');return}
+      if(m1.length<6){erreur('Le mot de passe doit avoir au moins 6 caractères.');return}
+      if(m1!==m2){erreur('Les deux mots de passe ne sont pas identiques.');return}
+      var fin=occupe($('b-ok'),'Création du compte…');
+      DT.inscrire(sb,nom,tel,m1).then(function(){toast('Compte créé, bienvenue sur Dallas Trak');return demarrerSession()}).catch(function(x){fin();erreur(DT.msg(x))});
+    });
+  }
+  if(e==='bloque'||e==='reglages'){
+    $('deconnexion').addEventListener('click',deconnexion);
+  }
+  if(e==='accueil'){
+    contenu.querySelectorAll('[data-fav]').forEach(function(b){b.addEventListener('click',function(){var f=S.profil.favoris[b.getAttribute('data-fav')];choisir({n:f.label,d:b.getAttribute('data-fav')==='maison'?'Maison':'Travail',lat:f.lat,lng:f.lng})})});
+    var r=contenu.querySelector('[data-recent]');
+    if(r)r.addEventListener('click',function(){var d=S.historique.filter(function(c){return c.statut==='terminee'})[0];choisir({n:d.arrivee_label,d:'Dernière course',lat:d.arrivee_lat,lng:d.arrivee_lng})});
+  }
+  if(e==='lieux'){
+    $('repere').addEventListener('input',function(ev){S.depart.repere=ev.target.value});
+    var rechT=null,rechJ=0,trouves=[];
+    $('cherche').addEventListener('input',function(ev){
+      var brut=ev.target.value.trim(),q=DT.norm(brut),visibles=0;
+      contenu.querySelectorAll('#liste-lieux [data-lieu]').forEach(function(b){
+        var l=DT.LIEUX[+b.getAttribute('data-lieu')],ok=!q||DT.norm(l.n+' '+l.d).indexOf(q)>-1;b.hidden=!ok;if(ok)visibles++;
+      });
+      $('titre-liste').hidden=visibles===0;
+      clearTimeout(rechT);
+      if(brut.length<3){$('resultats').innerHTML='';$('titre-res').hidden=true;return}
+      rechT=setTimeout(function(){
+        var j=++rechJ;
+        DT.chercher(brut).then(function(liste){
+          if(j!==rechJ||S.ecran!=='lieux')return;
+          trouves=liste;var zone=$('resultats');if(!zone)return;
+          zone.innerHTML=trouves.map(function(x,k){return '<button class="racc" data-res="'+k+'"><span class="ico">'+ICO.lieu+'</span><div><b>'+esc(x.n)+'</b><span>'+esc(x.d)+'</span></div></button>'}).join('')||'<p class="mute petit">Aucun lieu trouvé. Essayez un autre nom ou choisissez sur la carte.</p>';
+          $('titre-res').hidden=!trouves.length;
+          zone.querySelectorAll('[data-res]').forEach(function(b){b.addEventListener('click',function(){choisir(trouves[+b.getAttribute('data-res')])})});
+        }).catch(function(){if(j===rechJ&&$('resultats'))$('resultats').innerHTML='<p class="mute petit">Recherche indisponible pour le moment. Choisissez un lieu ci-dessous ou sur la carte.</p>'});
+      },350);
+    });
+    $('choix-carte').addEventListener('click',function(){S.depart.repere=$('repere').value.trim();S.choixCarte=true;toast('Touchez la carte à l’endroit où vous allez')});
+  }
+  if(e==='estimation'){
+    contenu.querySelectorAll('input[name=pay]').forEach(function(r){r.addEventListener('change',function(){S.paiement=r.value;garderProche();render()})});
+    $('t-proche').addEventListener('change',function(ev){garderProche();S.proche.actif=ev.target.checked;render()});
+    $('t-plan').addEventListener('change',function(ev){
+      garderProche();S.plan.actif=ev.target.checked;
+      if(S.plan.actif&&!S.plan.quand){var d=new Date(Date.now()+60*60000);d.setMinutes(0,0,0);d.setHours(d.getHours()+1);S.plan.quand=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)}
+      render();
+    });
+    if($('p-nom'))$('p-nom').addEventListener('input',function(ev){S.proche.nom=ev.target.value});
+    if($('p-tel'))$('p-tel').addEventListener('input',function(ev){S.proche.tel=ev.target.value;$('err-tel').hidden=true});
+    if($('quand'))$('quand').addEventListener('input',function(ev){S.plan.quand=ev.target.value;$('err-quand').hidden=true});
+    $('commander').addEventListener('click',commander);
+  }
+  if(e==='recherche'){$('annuler').addEventListener('click',annuler)}
+  if(e==='aucun'){$('reessayer').addEventListener('click',function(){var c=S.course;reprendre(c)})}
+  if(e==='chauffeur'){
+    $('partager').addEventListener('click',partager);
+    $('annuler').addEventListener('click',annuler);
+  }
+  if(e==='course'){
+    $('partager').addEventListener('click',partager);
+    lierSOS($('sos'),$('sos-rempli'));
+  }
+  if(e==='fin'){
+    contenu.querySelectorAll('[data-note]').forEach(function(b){b.addEventListener('click',function(){S.note=+b.getAttribute('data-note');var c=$('commentaire').value;render();$('commentaire').value=c})});
+    contenu.querySelectorAll('[data-tag]').forEach(function(b){b.addEventListener('click',function(){var t=b.getAttribute('data-tag'),i=S.tags.indexOf(t);if(i>-1)S.tags.splice(i,1);else S.tags.push(t);b.setAttribute('aria-pressed',String(i===-1))})});
+    if($('copier'))$('copier').addEventListener('click',function(){var n=DT.telNorm(S.course.chauffeur_momo);if(navigator.clipboard)navigator.clipboard.writeText(n).then(function(){toast('Numéro copié')},function(){toast(n)});else toast(n)});
+    $('noter').addEventListener('click',function(){
+      var b=$('noter'),fin=occupe(b,'Envoi…');
+      DT.appel(sb.rpc('dt_noter',{p_course:S.course.id,p_note:S.note,p_tags:S.tags,p_commentaire:$('commentaire').value})).then(function(){
+        toast('Merci, votre note a été envoyée');aller('accueil');chargerHistorique();
+      }).catch(function(x){fin();toast(DT.msg(x),true)});
+    });
+    $('passer').addEventListener('click',function(){ignorerNote(S.course.id);aller('accueil')});
+  }
+  if(e==='historique'){
+    contenu.querySelectorAll('[data-annuler-plan]').forEach(function(b){b.addEventListener('click',function(){
+      if(b.getAttribute('data-sur')!=='1'){b.setAttribute('data-sur','1');b.textContent='Touchez encore pour confirmer l’annulation';return}
+      DT.appel(sb.rpc('dt_annuler_client',{p_course:b.getAttribute('data-annuler-plan')})).then(function(){toast('Course planifiée annulée');chargerHistorique()}).catch(function(x){toast(DT.msg(x),true)});
+    })});
+  }
+  if(e==='favoris'){
+    contenu.querySelectorAll('[data-fav-enr]').forEach(function(b){b.addEventListener('click',function(){
+      var f=Object.assign({},S.profil.favoris||{});f[b.getAttribute('data-fav-enr')]={lat:S.depart.lat,lng:S.depart.lng,label:S.depart.label};
+      majProfil({p_favoris:f},'Adresse enregistrée');
+    })});
+    contenu.querySelectorAll('[data-fav-suppr]').forEach(function(b){b.addEventListener('click',function(){
+      var f=Object.assign({},S.profil.favoris||{});delete f[b.getAttribute('data-fav-suppr')];majProfil({p_favoris:f},'Adresse retirée');
+    })});
+  }
+  if(e==='contacts'){
+    contenu.querySelectorAll('[data-suppr]').forEach(function(b){b.addEventListener('click',function(){
+      var cs=(S.profil.contacts||[]).slice();cs.splice(+b.getAttribute('data-suppr'),1);majProfil({p_contacts:cs},'Contact retiré');
+    })});
+    if($('c-ajout'))$('c-ajout').addEventListener('click',function(){
+      var n=$('c-nom').value.trim(),t=DT.telNorm($('c-tel').value);
+      if(!n||!DT.telValide(t)){$('err-c').hidden=false;return}
+      var cs=(S.profil.contacts||[]).concat([{nom:n,tel:t}]);majProfil({p_contacts:cs},'Contact ajouté');
+    });
+  }
+  if(e==='reglages'){
+    $('r-enr').addEventListener('click',function(){var n=$('r-nom').value.trim();if(n.length<2){toast('Indiquez votre nom');return}majProfil({p_nom:n},'Nom enregistré')});
+    $('t-donnees').addEventListener('change',function(ev){S.donneesLegeres=ev.target.checked;ecrire('dt-leger',S.donneesLegeres?'1':'0');if(S.donneesLegeres)S.vue='plan';poserTuiles();toast(S.donneesLegeres?'Économie de données activée':'Économie de données désactivée')});
+  }
+}
+function garderProche(){var n=document.getElementById('p-nom'),t=document.getElementById('p-tel');if(n)S.proche.nom=n.value;if(t)S.proche.tel=t.value}
+
+function majProfil(args,msg){
+  DT.appel(sb.rpc('dt_maj_profil',args)).then(function(){
+    if(args.p_nom)S.profil.nom=args.p_nom;
+    if(args.p_contacts)S.profil.contacts=args.p_contacts;
+    if(args.p_favoris)S.profil.favoris=args.p_favoris;
+    majMenu();render();toast(msg);
+  }).catch(function(x){toast(DT.msg(x),true)});
+}
+
+/* ---------- Commande ---------- */
+function choisir(lieu){
+  var r=document.getElementById('repere');if(r)S.depart.repere=r.value.trim();
+  S.arrivee={n:lieu.n,d:lieu.d,lat:lieu.lat,lng:lieu.lng};calculer();
+}
+var calculJ=0;
+function calculer(){
+  var j=++calculJ;
+  S.ecran='calcul';render();
+  if(mArrivee)carte.removeLayer(mArrivee);
+  mArrivee=L.marker([S.arrivee.lat,S.arrivee.lng],{icon:DT.icone('m-arrivee'),keyboard:false,title:'Destination'}).addTo(carte);
+  DT.itineraire(S.depart,S.arrivee).then(function(r){
+    if(j!==calculJ||S.ecran!=='calcul')return;
+    S.route=r.coords;S.km=r.km;S.min=Math.max(3,Math.round(r.min));
+    dessinerTrajet(r.coords);cadrer(r.coords);
+    S.ecran='estimation';render();
+  });
+}
+function commander(){
+  garderProche();
+  var b=document.getElementById('commander');
+  var p={depart_lat:S.depart.lat,depart_lng:S.depart.lng,depart_label:S.depart.label==='Recherche de l’adresse…'?'Point choisi sur la carte':S.depart.label,repere:S.depart.repere,
+    arrivee_lat:S.arrivee.lat,arrivee_lng:S.arrivee.lng,arrivee_label:S.arrivee.n,arrivee_detail:S.arrivee.d,km:Math.round(S.km*100)/100,minutes:S.min,paiement:S.paiement};
+  if(S.proche.actif){
+    if(!S.proche.nom.trim()){toast('Indiquez le nom de la personne');document.getElementById('p-nom').focus();return}
+    if(!DT.telValide(S.proche.tel)){document.getElementById('err-tel').hidden=false;document.getElementById('p-tel').focus();return}
+    p.proche_nom=S.proche.nom.trim();p.proche_tel=DT.telNorm(S.proche.tel);
+  }
+  if(S.plan.actif){
+    var q=new Date(S.plan.quand);
+    if(!S.plan.quand||isNaN(q)||q.getTime()<Date.now()+30*60000||q.getTime()>Date.now()+7*864e5){document.getElementById('err-quand').hidden=false;return}
+    p.planifiee_pour=q.toISOString();
+  }
+  if(DT.notifEtat()==='a-activer')DT.activerNotifs(sb,true);
+  var fin=occupe(b,S.plan.actif?'Planification…':'Envoi de la demande…');
+  DT.appel(sb.rpc('dt_commander',{p:p})).then(function(id){return chargerCourse(id)}).then(function(c){
+    if(!c)throw new Error('Course introuvable.');
+    if(c.statut==='planifiee'){S.course=c;S.ecran='planifie';render();chargerHistorique();return}
+    suivre(c);
+  }).catch(function(x){fin();erreur(DT.msg(x))});
+}
+function chargerCourse(id){return DT.appel(sb.from('dt_courses').select('*').eq('id',id).maybeSingle())}
+
+/* ---------- Suivi de la course en temps réel ---------- */
+var canal=null,sondeT=null,relanceT=null,routeT=null,derniereRoute=null,rechercheDebut=0;
+var ACTIFS=['recherche','acceptee','arrivee','en_cours'];
+function suivre(c){
+  arreterSuivi();
+  S.course=c;
+  mDepart.dragging.disable();
+  mDepart.setLatLng([c.depart_lat,c.depart_lng]);
+  if(mArrivee)carte.removeLayer(mArrivee);
+  mArrivee=L.marker([c.arrivee_lat,c.arrivee_lng],{icon:DT.icone('m-arrivee'),keyboard:false,title:'Destination'}).addTo(carte);
+  afficherTaxis([]);
+  canal=sb.channel('course-'+c.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'dt_courses',filter:'id=eq.'+c.id},function(p){if(p.new)majCourse(p.new)}).subscribe();
+  (function sonde(){sondeT=setTimeout(function(){chargerCourse(c.id).then(function(n){if(n)majCourse(n)}).catch(function(){}).then(function(){if(S.course&&S.course.id===c.id&&ACTIFS.indexOf(S.course.statut)>-1)sonde()})},6000)})();
+  if(!S.code)DT.appel(sb.from('dt_codes').select('code').eq('course_id',c.id).maybeSingle()).then(function(r){if(r){S.code=r.code;if(S.ecran==='chauffeur')render()}}).catch(function(){});
+  majCourse(c,true);
+}
+function arreterSuivi(){
+  if(canal){sb.removeChannel(canal);canal=null}
+  clearTimeout(sondeT);clearTimeout(relanceT);clearTimeout(routeT);sondeT=relanceT=routeT=null;derniereRoute=null;
+}
+function majCourse(n,premier){
+  var a=S.course||{},avant=premier?null:a.statut;
+  if(!premier&&a.id!==n.id)return;
+  S.course=n;
+  var s=n.statut;
+  if(s==='recherche'){
+    if(avant&&avant!=='recherche')toast('Le chauffeur a dû annuler. Nous cherchons une autre voiture.',true);
+    if(mVoiture){carte.removeLayer(mVoiture);mVoiture=null}
+    if(S.ecran!=='recherche'||avant!=='recherche'){S.ecran='recherche';render();if(S.route)dessinerTrajet(S.route);cadrer([[n.depart_lat,n.depart_lng],[n.arrivee_lat,n.arrivee_lng]]);lancerRelance()}
+    return;
+  }
+  clearTimeout(relanceT);
+  if(s==='acceptee'||s==='arrivee'||s==='en_cours'){
+    if(avant==='recherche'||(premier&&!S.photo))chargerPhoto();
+    if(avant==='recherche'){toast('Un chauffeur a accepté votre course');if(navigator.vibrate)try{navigator.vibrate([150,80,150])}catch(x){}}
+    if(s==='arrivee'&&avant==='acceptee'){toast('Votre chauffeur est arrivé');if(navigator.vibrate)try{navigator.vibrate([300,120,300])}catch(x){}}
+    placerVoiture(n);
+    var ecran=s==='en_cours'?'course':'chauffeur';
+    if(S.ecran!==ecran||avant!==s){S.ecran=ecran;render();derniereRoute=null}
+    else{var e=document.getElementById('eta');if(e&&S.etaMin!=null&&s!=='arrivee')e.firstChild.nodeValue=String(Math.max(1,Math.round(S.etaMin)))}
+    majRoute();
+    return;
+  }
+  arreterSuivi();
+  if(s==='terminee'){
+    if(mVoiture){carte.removeLayer(mVoiture);mVoiture=null}
+    if(n.note==null&&!estIgnoree(n.id)){
+      if(S.ecran!=='fin'){S.note=0;S.tags=[];S.ecran='fin';render()}
+      else if(n.paye&&!a.paye){var c=document.getElementById('commentaire'),v=c?c.value:'';render();var c2=document.getElementById('commentaire');if(c2)c2.value=v}
+      // Le paiement Mobile Money est confirmé par le chauffeur après la fin de course
+      if(!n.paye&&n.paiement!=='especes'){sondeT=setTimeout(function(){chargerCourse(n.id).then(function(x){if(x&&S.ecran==='fin')majCourse(x)}).catch(function(){})},6000)}
+    }else aller('accueil');
+    return;
+  }
+  if(s==='expiree'){S.ecran='aucun';render();return}
+  if(s==='annulee'){
+    if(n.annulee_par==='admin')toast('Course annulée par l’équipe Dallas Trak.',true);
+    else if(n.annulee_par==='chauffeur')toast('Le chauffeur a clôturé la course : il ne vous a pas trouvé au point de prise en charge.',true);
+    if(n.annulee_par!=='client')aller('accueil');
+  }
+}
+function lancerRelance(){
+  clearTimeout(relanceT);
+  rechercheDebut=new Date(S.course.recherche_le||Date.now()).getTime();
+  (function tic(){
+    var b=document.getElementById('barre');if(b)b.style.width=Math.min(100,(Date.now()-rechercheDebut)/2400)+'%';
+    relanceT=setTimeout(function(){
+      if(!S.course||S.course.statut!=='recherche')return;
+      sb.rpc('dt_relancer',{p_course:S.course.id}).then(function(r){
+        if(r&&r.data==='expiree')chargerCourse(S.course.id).then(function(n){if(n)majCourse(n)});
+      });
+      tic();
+    },10000);
+  })();
+}
+function placerVoiture(c){
+  if(c.chauffeur_lat==null)return;
+  if(!mVoiture){mVoiture=L.marker([c.chauffeur_lat,c.chauffeur_lng],{icon:DT.iconeVoiture(),keyboard:false,interactive:false,zIndexOffset:1000}).addTo(carte)}
+  else DT.glisser(mVoiture,c.chauffeur_lat,c.chauffeur_lng);
+  DT.orienter(mVoiture,c.chauffeur_cap);
+}
+// Itinéraire du chauffeur : vers le client, puis vers la destination
+function majRoute(){
+  var c=S.course;if(!c||c.chauffeur_lat==null)return;
+  var de={lat:c.chauffeur_lat,lng:c.chauffeur_lng},vers=c.statut==='en_cours'?{lat:c.arrivee_lat,lng:c.arrivee_lng}:{lat:c.depart_lat,lng:c.depart_lng};
+  if(c.statut==='arrivee'){if(ligne){carte.removeLayer(ligne);carte.removeLayer(ligneFond);ligne=ligneFond=null}S.etaMin=0;return}
+  var cle=c.statut;
+  if(derniereRoute&&derniereRoute.cle===cle&&DT.dist(derniereRoute.de,de)<0.15&&Date.now()-derniereRoute.t<45000){
+    S.etaMin=Math.max(1,derniereRoute.min*(DT.dist(de,vers)/Math.max(.05,derniereRoute.droit)));majEta();return;
+  }
+  var premier=!derniereRoute||derniereRoute.cle!==cle;
+  derniereRoute={cle:cle,de:de,t:Date.now(),min:derniereRoute&&derniereRoute.cle===cle?derniereRoute.min:null,droit:DT.dist(de,vers)};
+  DT.itineraire(de,vers).then(function(r){
+    if(!S.course||S.course.statut!==cle)return;
+    derniereRoute.min=r.min;derniereRoute.droit=DT.dist(de,vers);
+    S.etaMin=r.min;majEta();
+    dessinerTrajet(r.coords);
+    if(premier)cadrer(r.coords.concat([[vers.lat,vers.lng]]));
+  });
+}
+function majEta(){var e=document.getElementById('eta');if(e&&S.etaMin!=null&&S.course&&S.course.statut!=='arrivee')e.firstChild.nodeValue=String(Math.max(1,Math.round(S.etaMin)))}
+function chargerPhoto(){
+  var c=S.course;if(!c||!c.chauffeur_id)return;
+  sb.storage.from('dallas-trak').createSignedUrl(c.chauffeur_id+'/visage.jpg',3600).then(function(r){
+    if(r&&r.data&&r.data.signedUrl&&S.course&&S.course.chauffeur_id===c.chauffeur_id){S.photo=r.data.signedUrl;if(S.ecran==='chauffeur'||S.ecran==='course')render()}
+  });
+}
+function annuler(){
+  var b=document.getElementById('annuler');
+  if(b&&b.getAttribute('data-sur')!=='1'&&S.course&&S.course.statut!=='recherche'){
+    b.setAttribute('data-sur','1');var t=b.lastChild;if(t&&t.nodeType===3)t.nodeValue='Confirmer';toast('Touchez encore pour annuler la course');return;
+  }
+  DT.appel(sb.rpc('dt_annuler_client',{p_course:S.course.id})).then(function(){
+    toast('Course annulée, sans frais');
+    var c=S.course;arreterSuivi();
+    // On garde la destination pour pouvoir recommander tout de suite
+    S.course=null;S.code='';S.photo=null;if(mVoiture){carte.removeLayer(mVoiture);mVoiture=null}
+    mDepart.dragging.enable();
+    S.arrivee={n:c.arrivee_label,d:c.arrivee_detail||'',lat:c.arrivee_lat,lng:c.arrivee_lng};
+    S.depart={lat:c.depart_lat,lng:c.depart_lng,label:c.depart_label,repere:c.repere||''};
+    calculer();
+  }).catch(function(x){toast(DT.msg(x),true)});
+}
+function reprendre(c){
+  S.depart={lat:c.depart_lat,lng:c.depart_lng,label:c.depart_label,repere:c.repere||''};
+  S.arrivee={n:c.arrivee_label,d:c.arrivee_detail||'',lat:c.arrivee_lat,lng:c.arrivee_lng};
+  S.paiement=c.paiement;S.course=null;mDepart.dragging.enable();
+  calculer();
+}
+function lienSuivi(){return location.origin+location.pathname.replace(/[^/]*$/,'')+'suivi.html?j='+S.course.jeton_suivi}
+function partager(){
+  var c=S.course,url=lienSuivi();
+  var txt='Je suis dans un Dallas Trak vers '+c.arrivee_label+(c.chauffeur_nom?' avec '+prenom(c.chauffeur_nom)+', '+(c.voiture||'')+', plaque '+(c.plaque||''):'')+'. Suivez mon trajet en direct :';
+  if(navigator.share){navigator.share({title:'Mon trajet Dallas Trak',text:txt,url:url}).catch(function(){})}
+  else if(navigator.clipboard){navigator.clipboard.writeText(txt+' '+url).then(function(){toast('Lien copié, collez-le dans WhatsApp')},function(){toast(url,true)})}
+  else toast(url,true);
+}
+function lierSOS(btn,rempli){
+  var t0=0,raf=null,fait=false;
+  function anime(ts){
+    if(!t0)t0=ts;var k=Math.min(1,(ts-t0)/2000);rempli.style.transform='scaleX('+k+')';
+    if(k<1)raf=requestAnimationFrame(anime);else if(!fait){fait=true;alerte()}
+  }
+  function debut(e){e.preventDefault();fait=false;t0=0;raf=requestAnimationFrame(anime)}
+  function fin(){if(raf)cancelAnimationFrame(raf);raf=null;if(!fait)rempli.style.transform='scaleX(0)'}
+  btn.addEventListener('pointerdown',debut);
+  ['pointerup','pointerleave','pointercancel'].forEach(function(ev){btn.addEventListener(ev,fin)});
+  btn.addEventListener('keydown',function(e){if((e.key===' '||e.key==='Enter')&&!raf&&!e.repeat)debut(e)});
+  btn.addEventListener('keyup',function(e){if(e.key===' '||e.key==='Enter')fin()});
+  btn.addEventListener('contextmenu',function(e){e.preventDefault()});
+}
+function alerte(){
+  var c=S.course,lat=c.chauffeur_lat||c.depart_lat,lng=c.chauffeur_lng||c.depart_lng;
+  sb.rpc('dt_alerte',{p_course:c.id,p_lat:lat,p_lng:lng});
+  var url=lienSuivi(),msg='URGENCE : je suis dans un taxi Dallas Trak ('+(c.voiture||'')+', plaque '+(c.plaque||'')+'). Suivez ma position : '+url;
+  var cs=(S.profil.contacts||[]).map(function(k){return '<a class="btn btn-plein" href="sms:'+esc(k.tel)+'?body='+encodeURIComponent(msg)+'">Prévenir '+esc(k.nom)+' par SMS</a>'}).join('');
+  var t=DT.CONFIG.service_tel;
+  var m=document.createElement('div');m.className='modale';m.setAttribute('role','alertdialog');m.setAttribute('aria-modal','true');m.setAttribute('aria-labelledby','m-titre');
+  m.innerHTML='<div class="pile"><h2 id="m-titre" style="color:#F7B3A6">Alerte envoyée</h2><p>L’équipe Dallas Trak a reçu votre alerte avec votre position.</p>'+
+    (cs||'<p class="mute petit">Ajoutez des contacts d’urgence dans le menu pour pouvoir les prévenir en un geste.</p>')+
+    (t?'<a class="btn btn-ligne" href="tel:'+esc(t)+'">Appeler Dallas Trak</a>':'')+
+    '<a class="btn btn-ligne" href="tel:110">Appeler la police (110)</a>'+
+    '<button class="lien-txt" id="m-ok">Fermer</button></div>';
+  document.body.appendChild(m);
+  var ok=m.querySelector('#m-ok');ok.focus();
+  ok.addEventListener('click',function(){m.remove();var r=document.getElementById('sos-rempli');if(r)r.style.transform='scaleX(0)'});
+}
+function ignorerNote(id){var l=[];try{l=JSON.parse(lire('dt-notes-passees')||'[]')}catch(e){}l.push(id);ecrire('dt-notes-passees',JSON.stringify(l.slice(-20)))}
+function estIgnoree(id){try{return JSON.parse(lire('dt-notes-passees')||'[]').indexOf(id)>-1}catch(e){return false}}
+
+/* ---------- Session ---------- */
+function chargerHistorique(){
+  if(!S.profil)return Promise.resolve();
+  return DT.appel(sb.from('dt_courses').select('id,statut,depart_label,arrivee_label,arrivee_lat,arrivee_lng,prix,paiement,cree_le,planifiee_pour,chauffeur_nom,chauffeur_tel').eq('client_id',S.profil.id).order('cree_le',{ascending:false}).limit(30))
+    .then(function(l){S.historique=l||[];if(S.ecran==='historique'||(S.ecran==='accueil'&&l&&l.length))render()}).catch(function(){});
+}
+function majMenu(){
+  document.getElementById('m-nom').textContent=S.profil?S.profil.nom:'';
+  document.getElementById('m-tel').textContent=S.profil?DT.telAff(S.profil.telephone):'';
+  document.getElementById('m-initiale').textContent=S.profil?S.profil.nom.charAt(0).toUpperCase():'D';
+  document.getElementById('btn-menu').disabled=!S.profil;
+}
+function demarrerSession(){
+  return sb.auth.getSession().then(function(r){
+    var sess=r.data&&r.data.session;
+    if(!sess){S.profil=null;majMenu();S.ecran='connexion';render();return}
+    return Promise.all([DT.appel(sb.from('dt_profils').select('*').eq('id',sess.user.id).maybeSingle()),DT.chargerConfig(sb)]).then(function(res){
+      var p=res[0];
+      if(!p){return sb.auth.signOut().then(function(){S.profil=null;majMenu();S.ecran='connexion';render();erreur('Ce compte n’est pas un compte Dallas Trak.')})}
+      S.profil=p;majMenu();DT.activerNotifs(sb,false);
+      if(p.suspendu){S.ecran='bloque';render();return}
+      // Reprendre une course en cours, ou proposer de noter la dernière
+      var q=function(statuts){return DT.appel(sb.from('dt_courses').select('*').eq('client_id',p.id).in('statut',statuts).order('cree_le',{ascending:false}).limit(1))};
+      return q(ACTIFS).then(function(l){
+        chargerHistorique();
+        if(l&&l[0]){suivre(l[0]);return}
+        return q(['terminee']).then(function(t){
+          var c=t&&t[0];
+          if(c&&c.note==null&&!estIgnoree(c.id)&&Date.now()-new Date(c.fin_le).getTime()<3*3600e3){S.course=c;S.ecran='fin';render();return}
+          S.ecran='accueil';render();majTaxis();majAdresseDepart();localiser(true);
+        });
+      });
+    });
+  }).catch(function(x){S.ecran='connexion';render();erreur(DT.msg(x))});
+}
+function deconnexion(){
+  arreterSuivi();
+  DT.desactiverNotifs(sb).then(function(){return sb.auth.signOut()}).then(function(){S.profil=null;S.historique=null;majMenu();effacerTrajet();afficherTaxis([]);menuOuvert(false);S.ecran='connexion';render()});
+}
+
+/* ---------- Menu ---------- */
+var menu=document.getElementById('menu'),voile=document.getElementById('voile'),bMenu=document.getElementById('btn-menu');
+function menuOuvert(o){menu.classList.toggle('ouvert',o);voile.classList.toggle('ouvert',o);menu.setAttribute('aria-hidden',String(!o));bMenu.setAttribute('aria-expanded',String(o));if(o)menu.querySelector('button').focus()}
+bMenu.addEventListener('click',function(){menuOuvert(true)});
+menu.querySelectorAll('[data-si-installable]').forEach(function(x){if(DT.installee())x.remove();else x.addEventListener('click',function(){menuOuvert(false)})});
+voile.addEventListener('click',function(){menuOuvert(false)});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')menuOuvert(false)});
+menu.querySelectorAll('[data-menu]').forEach(function(b){b.addEventListener('click',function(){
+  menuOuvert(false);
+  if(['recherche','chauffeur','course','calcul'].indexOf(S.ecran)>-1){toast('Terminez ou annulez la course en cours d’abord');return}
+  if(['accueil','historique','favoris','contacts','aide','reglages'].indexOf(S.ecran)<0)remiseAZero();
+  S.ecran=b.getAttribute('data-menu');render();
+  if(S.ecran==='historique')chargerHistorique();
+  majTaxis();
+})});
+
+/* ---------- Position ---------- */
+// silencieux : au démarrage, seulement si le téléphone a déjà autorisé la position
+function localiser(silencieux){
+  if(!navigator.geolocation){if(!silencieux)carte.setView([S.depart.lat,S.depart.lng],16);return}
+  function go(){
+    navigator.geolocation.getCurrentPosition(function(p){
+      var ll=[p.coords.latitude,p.coords.longitude];
+      if(DT.dist({lat:ll[0],lng:ll[1]},{lat:DT.DALOA[0],lng:DT.DALOA[1]})>25){if(!silencieux){toast('Vous semblez hors de Daloa. Placez le point rouge à la main.',true);carte.setView([S.depart.lat,S.depart.lng],16)}return}
+      if(S.ecran==='accueil'||S.ecran==='lieux'){S.depart.lat=ll[0];S.depart.lng=ll[1];mDepart.setLatLng(ll);majAdresseDepart();majTaxis()}
+      carte.setView(ll,16);
+    },function(){if(!silencieux){toast('Position indisponible. Déplacez le point rouge à la main.',true);carte.setView([S.depart.lat,S.depart.lng],16)}},{enableHighAccuracy:true,timeout:10000});
+  }
+  if(!silencieux){go();return}
+  if(navigator.permissions&&navigator.permissions.query){navigator.permissions.query({name:'geolocation'}).then(function(r){if(r.state==='granted')go()}).catch(function(){})}
+}
+document.getElementById('btn-centrer').addEventListener('click',function(){localiser(false)});
+
+// Revenir sur l'application : rafraîchir tout de suite
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden||!S.course||!S.profil)return;
+  chargerCourse(S.course.id).then(function(n){if(n)majCourse(n)}).catch(function(){});
+});
+// Notifications : activation depuis un encart, et mise à jour immédiate quand l'une arrive
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest&&e.target.closest('[data-notifs]');if(!b)return;
+  b.disabled=true;
+  DT.activerNotifs(sb,true).then(function(st){toast(st==='active'?'Notifications activées':(st==='refusee'?'Notifications refusées par le téléphone':'Notifications non activées'),st!=='active');render()});
+});
+DT.surPush(function(){
+  if(!S.profil||!S.course)return;
+  chargerCourse(S.course.id).then(function(n){if(n)majCourse(n)}).catch(function(){});
+});
+sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT'&&S.profil){S.profil=null;majMenu();arreterSuivi();S.ecran='connexion';render()}});
+
+render();
+demarrerSession();
+})();
+</script>
+</body>
+</html>

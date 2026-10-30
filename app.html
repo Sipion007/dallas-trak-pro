@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dallas Trak</title>
+<meta name="description" content="Le taxi à la demande de Daloa. Installez l’application : espace client et espace chauffeur.">
+<meta name="theme-color" content="#0D1A15">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dallas Trak">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icone-192.png">
+<link rel="apple-touch-icon" href="icone-180.png">
+<script>
+// Application installée : on ouvre directement le dernier espace utilisé
+(function(){
+  try{
+    var q=new URLSearchParams(location.search),e=q.get('espace');
+    if(e==='client'||e==='chauffeur'){localStorage.setItem('dt-espace',e);location.replace(e+'.html');return}
+    var installee=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+    var d=localStorage.getItem('dt-espace');
+    if(installee&&!q.has('choix')&&(d==='client'||d==='chauffeur'))location.replace(d+'.html');
+  }catch(x){}
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Familjen+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* Porte d'entrée de l'application : installer, puis choisir son espace. */
+:root{
+  --nuit:#0D1A15;--nuit-2:#14261F;--nuit-3:#1C3229;
+  --laterite:#C2502A;--ambre:#F2A93B;--feuille:#5E9A6E;
+  --sable:#EFE6D8;--brume:#9AAEA2;--trait:rgba(239,230,216,.12);
+  --display:"Big Shoulders Display","Arial Narrow",sans-serif;
+  --texte:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;min-height:100%}
+body{background:var(--nuit);color:var(--sable);font-family:var(--texte);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--ambre);outline-offset:3px}
+.fond{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.fond svg{position:absolute;right:-46vw;top:-12vh;width:120vw;max-width:1100px;height:auto;opacity:.38}
+.fond .debut{display:none}
+@media (min-width:900px){.fond svg{right:-8vw;top:-10vh;width:70vw;opacity:.5}.fond .debut{display:inline}}
+.page{position:relative;z-index:1;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 22px) max(20px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 24px) max(20px,env(safe-area-inset-left,0px))}
+.marque{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:1.5rem;letter-spacing:.005em}
+.marque svg{flex:none}
+.tete{margin-top:auto;padding-top:9vh}
+.surtitre{color:var(--ambre);font-weight:600;font-size:.82rem;letter-spacing:.14em;text-transform:uppercase}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(2.9rem,13vw,4.4rem);line-height:.9;margin:10px 0 0;letter-spacing:-.01em}
+h1 em{font-style:normal;color:var(--ambre)}
+.intro{color:var(--brume);font-size:1.05rem;margin:16px 0 0;max-width:30em}
+.installer{margin-top:28px;display:grid;gap:10px}
+.btn-installer{display:flex;align-items:center;justify-content:center;width:100%;min-height:60px;border-radius:999px;border:0;background:var(--ambre);color:var(--nuit);font-weight:700;font-size:1.1rem;box-shadow:0 14px 34px rgba(242,169,59,.22);transition:transform .15s ease}
+.btn-installer:active{transform:scale(.98)}
+.garanties{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;color:var(--brume);font-size:.84rem;margin:0;padding:0;list-style:none}
+.garanties li{display:flex;align-items:center;gap:7px}
+.garanties li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--feuille)}
+.installee{padding:14px 16px;border-radius:16px;background:rgba(94,154,110,.14);border:1px solid rgba(94,154,110,.4);font-weight:500;margin-top:28px}
+.espaces{margin-top:30px;display:grid;gap:10px}
+.espaces>p{margin:0 0 2px;color:var(--brume);font-size:.88rem}
+.espace{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 14px;padding:18px;border-radius:20px;background:rgba(20,38,31,.86);border:1px solid var(--trait);text-decoration:none;transition:border-color .2s,background .2s}
+.espace:hover{border-color:rgba(239,230,216,.32)}
+.espace .k{font-size:.76rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--brume)}
+.espace b{display:block;font-family:var(--display);font-weight:800;font-size:1.65rem;line-height:1;margin-top:4px}
+.espace span.d{grid-column:1;color:var(--brume);font-size:.9rem}
+.espace .aller{grid-row:1/span 3;grid-column:2;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--nuit-3);border:1px solid var(--trait)}
+.espace.client .aller{background:var(--laterite);border-color:transparent}
+.pied{margin-top:28px;display:flex;justify-content:space-between;gap:12px;color:var(--brume);font-size:.8rem}
+.pied a{color:var(--brume);text-underline-offset:3px}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);transform:translate(-50%,20px);z-index:95;background:var(--sable);color:var(--nuit);padding:12px 18px;border-radius:14px;font-weight:600;font-size:.95rem;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:calc(100vw - 32px);text-align:center}
+.toast.vu{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="fond" aria-hidden="true">
+  <svg viewBox="0 0 600 700" fill="none">
+    <path d="M60 640 C 60 380, 540 520, 540 120" stroke="#1C3229" stroke-width="46" stroke-linecap="round"/>
+    <path d="M60 640 C 60 380, 540 520, 540 120" stroke="#F2A93B" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 22" opacity=".55"/>
+    <circle cx="540" cy="120" r="34" stroke="#F2A93B" stroke-width="10" opacity=".7"/>
+    <circle class="debut" cx="60" cy="640" r="30" fill="#C2502A" opacity=".85"/>
+  </svg>
+</div>
+<main class="page">
+  <div class="marque"><svg width="30" height="30" viewBox="0 0 34 34" aria-hidden="true"><circle cx="7" cy="25" r="4.5" fill="#C2502A"/><path d="M7 25 C 7 12, 27 22, 27 9" fill="none" stroke="#F2A93B" stroke-width="2.6" stroke-linecap="round"/><circle cx="27" cy="9" r="4.5" fill="none" stroke="#F2A93B" stroke-width="2.6"/></svg>Dallas Trak</div>
+
+  <div class="tete">
+    <p class="surtitre">Taxi à la demande · Daloa</p>
+    <h1>Votre taxi,<br><em>dans votre poche.</em></h1>
+    <p class="intro">Commandez une voiture en quelques secondes, ou conduisez et recevez des courses près de vous. Une seule application, un espace pour chacun.</p>
+  </div>
+
+  <section class="installer" id="installer" data-si-installable aria-label="Installation">
+    <button type="button" class="btn-installer" data-installer>Installer l’application</button>
+    <ul class="garanties"><li>Gratuit</li><li>Sans passer par le Play Store</li><li>Léger pour petit forfait</li></ul>
+  </section>
+  <p class="installee" id="deja" hidden>L’application est installée sur ce téléphone. Choisissez votre espace pour commencer.</p>
+
+  <section class="espaces" aria-label="Choisir son espace">
+    <p>Choisissez votre espace</p>
+    <a class="espace client" href="client.html" data-espace="client">
+      <span class="k">Espace client</span>
+      <b>Commander un taxi</b>
+      <span class="d">Prix affiché avant de partir, chauffeur vérifié, trajet suivi en direct.</span>
+      <span class="aller" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5" fill="none" stroke="#FFF6EC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </a>
+    <a class="espace chauffeur" href="chauffeur.html" data-espace="chauffeur">
+      <span class="k">Espace chauffeur</span>
+      <b>Conduire avec Dallas Trak</b>
+      <span class="d">Recevez des courses près de vous, payées en espèces ou par Mobile Money.</span>
+      <span class="aller" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5" fill="none" stroke="#EFE6D8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </a>
+  </section>
+
+  <div class="pied"><span>Daloa, Côte d’Ivoire</span><a href="index.html" id="site">Découvrir Dallas Trak</a></div>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="commun.js"></script>
+<script>
+(function(){
+  'use strict';
+  function maj(){
+    var oui=DT.installee();
+    var z=document.getElementById('installer');if(z&&oui)z.remove();
+    document.getElementById('deja').hidden=!(oui||(function(){try{return localStorage.getItem('dt-installee')==='1'&&!document.getElementById('installer')}catch(e){return false}})());
+    var s=document.getElementById('site');if(s)s.hidden=oui;
+  }
+  maj();DT.surInstallation(maj);
+  document.querySelectorAll('[data-espace]').forEach(function(a){a.addEventListener('click',function(){try{localStorage.setItem('dt-espace',a.getAttribute('data-espace'))}catch(e){}})});
+})();
+</script>
+</body>
+</html>

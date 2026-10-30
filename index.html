@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dallas Trak</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Dallas Trak : commandez un taxi depuis chez vous à Daloa. Prix affiché avant de partir, chauffeurs vérifiés, paiement en espèces ou Mobile Money.">
+<meta name="theme-color" content="#0D1A15">
+<meta property="og:title" content="Dallas Trak — le taxi vient jusqu'à votre porte">
+<meta property="og:description" content="Commandez une voiture depuis chez vous, partout à Daloa.">
+<meta property="og:image" content="https://d8j0ntlcm91z4.cloudfront.net/user_3KdzCacYMA03No1NitlWUFVhAOP/hf_20261029_094322_53ce205a-dfb7-4899-8db9-b3be6d9139bc.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800&family=Familjen+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* Mise en page : une seule colonne éditoriale, alignée à gauche, rythmée par la ligne de trajet ambrée. */
+:root{
+  --nuit:#0D1A15;      /* fond : forêt la nuit */
+  --nuit-2:#14261F;    /* surfaces surélevées */
+  --nuit-3:#1C3229;
+  --laterite:#C2502A;  /* terre rouge de Daloa, action principale */
+  --ambre:#F2A93B;     /* feux de la voiture, ligne de trajet */
+  --feuille:#5E9A6E;   /* vert forêt, confirmations */
+  --sable:#EFE6D8;     /* texte */
+  --brume:#9AAEA2;     /* texte secondaire */
+  --trait:rgba(239,230,216,.13);
+  --display:"Big Shoulders Display","Arial Narrow","Roboto Condensed",sans-serif;
+  --texte:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --mesure:68ch;
+  --large:1180px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--nuit);color:var(--sable);font-family:var(--texte);font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--nuit)}
+img,video{max-width:100%;display:block}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ambre);outline-offset:3px;border-radius:4px}
+.cadre{max-width:var(--large);margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);font-weight:800;line-height:.92;letter-spacing:-.005em;margin:0;text-wrap:balance}
+h2{font-size:clamp(2.6rem,6.4vw,5.2rem)}
+h3{font-size:1.9rem;font-weight:700;line-height:1}
+p{margin:0}
+.chapo{color:var(--brume);font-size:1.15rem;max-width:52ch}
+
+/* Boutons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.6em;min-height:52px;padding:0 1.5em;border-radius:999px;font:600 1rem/1 var(--texte);text-decoration:none;border:1px solid transparent;cursor:pointer;transition:transform .18s ease,background .18s ease,border-color .18s ease}
+.btn:active{transform:scale(.97)}
+.btn-plein{background:var(--laterite);color:#FFF6EC}
+.btn-plein:hover{background:#D25D34}
+.btn-ligne{border-color:rgba(239,230,216,.35);color:var(--sable);background:rgba(13,26,21,.35);backdrop-filter:blur(8px)}
+.btn-ligne:hover{border-color:var(--sable)}
+
+/* En-tête */
+.entete{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:50;transition:background .3s ease,border-color .3s ease;border-bottom:1px solid transparent}
+.entete.colle{background:rgba(13,26,21,.86);backdrop-filter:blur(14px);border-color:var(--trait)}
+.entete .cadre{display:flex;align-items:center;justify-content:space-between;height:72px;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--display);font-weight:800;font-size:1.65rem;letter-spacing:.01em}
+.logo svg{flex:none}
+.nav{display:flex;align-items:center;gap:28px}
+.nav a{text-decoration:none;color:var(--brume);font-size:.98rem;transition:color .2s}
+.nav a:hover{color:var(--sable)}
+.nav .btn{min-height:44px;padding:0 1.2em;color:#FFF6EC}
+
+/* Héros */
+.heros{position:relative;min-height:min(100svh,920px);display:flex;align-items:flex-end;overflow:hidden;isolation:isolate}
+.heros-media{position:absolute;inset:0;z-index:-2}
+.heros-media video,.heros-media img{width:100%;height:100%;object-fit:cover}
+.heros::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(13,26,21,.55) 0%,rgba(13,26,21,0) 28%,rgba(13,26,21,.15) 52%,rgba(13,26,21,.92) 88%,var(--nuit) 100%),linear-gradient(90deg,rgba(13,26,21,.7) 0%,rgba(13,26,21,0) 60%)}
+.heros .cadre{width:100%;padding-block:140px 72px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.9fr);gap:48px;align-items:end}
+.heros h1{font-size:clamp(3.6rem,10.5vw,9.4rem);line-height:.84;max-width:9.5ch}
+.heros h1 .l{display:block}
+.heros .chapo{color:#D9D2C4;margin-top:26px;font-size:1.2rem}
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+
+/* Carte de course en direct (héros) */
+.course{background:rgba(20,38,31,.78);backdrop-filter:blur(18px);border:1px solid var(--trait);border-radius:22px;padding:22px;max-width:380px;justify-self:end;width:100%}
+.course-tete{display:flex;justify-content:space-between;align-items:center;font-size:.9rem;color:var(--brume)}
+.pastille{display:inline-flex;align-items:center;gap:8px;color:var(--ambre)}
+.pastille i{width:8px;height:8px;border-radius:50%;background:var(--ambre);box-shadow:0 0 0 0 rgba(242,169,59,.6);animation:pouls 2s infinite}
+@keyframes pouls{70%{box-shadow:0 0 0 9px rgba(242,169,59,0)}100%{box-shadow:0 0 0 0 rgba(242,169,59,0)}}
+.trajet{position:relative;margin:18px 0 16px;height:96px}
+.trajet svg{width:100%;height:100%;overflow:visible}
+.trajet-label{position:absolute;font-size:.82rem;color:var(--brume)}
+.trajet-label b{display:block;color:var(--sable);font-weight:600;font-size:.95rem}
+.chauffeur{display:flex;align-items:center;gap:12px;padding-top:16px;border-top:1px solid var(--trait)}
+.chauffeur img{width:48px;height:48px;border-radius:50%;object-fit:cover;object-position:50% 20%}
+.chauffeur div{flex:1;min-width:0}
+.chauffeur b{display:block;font-weight:600}
+.chauffeur span{color:var(--brume);font-size:.9rem}
+.eta{font-family:var(--display);font-weight:800;font-size:2.3rem;line-height:1;color:var(--ambre);text-align:right}
+.eta small{display:block;font-family:var(--texte);font-weight:500;font-size:.78rem;color:var(--brume)}
+.prix-ligne{display:flex;justify-content:space-between;margin-top:14px;font-size:.95rem;color:var(--brume)}
+.prix-ligne b{color:var(--sable);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* Sections */
+section{position:relative}
+.bloc{padding-block:clamp(84px,12vw,150px)}
+.tete-bloc{display:grid;gap:22px;margin-bottom:clamp(44px,6vw,72px)}
+
+/* Étapes le long de la route */
+.etapes-grille{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,6vw,90px);align-items:start}
+.etapes{list-style:none;margin:0;padding:0;position:relative}
+.etapes::before{content:"";position:absolute;left:21px;top:12px;bottom:12px;width:2px;background:linear-gradient(var(--ambre),var(--laterite));border-radius:2px;transform-origin:top;transform:scaleY(var(--avance,1));transition:transform 1.4s cubic-bezier(.2,.7,.2,1)}
+.etapes li{position:relative;display:grid;grid-template-columns:44px minmax(0,1fr);gap:22px;padding-bottom:42px}
+.etapes li:last-child{padding-bottom:0}
+.num{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--nuit);border:2px solid var(--ambre);font-family:var(--display);font-weight:800;font-size:1.3rem;color:var(--ambre);position:relative;z-index:1}
+.etapes li:last-child .num{background:var(--ambre);color:var(--nuit)}
+.etapes h3{margin-top:6px}
+.etapes p{color:var(--brume);margin-top:10px;max-width:46ch}
+.media-carte{position:sticky;top:110px;border-radius:26px;overflow:hidden;aspect-ratio:1;background:var(--nuit-2);border:1px solid var(--trait)}
+.media-carte video,.media-carte img{width:100%;height:100%;object-fit:cover}
+
+/* Ville entière */
+.ville{position:relative;overflow:hidden;isolation:isolate}
+.ville img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.ville::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,var(--nuit) 0%,rgba(13,26,21,.82) 40%,rgba(13,26,21,.2) 100%)}
+.ville .cadre{padding-block:clamp(100px,14vw,180px)}
+.ville h2{max-width:11ch}
+.quartiers{display:flex;flex-wrap:wrap;gap:8px;margin-top:30px;max-width:560px}
+.quartiers span{padding:7px 14px;border:1px solid rgba(239,230,216,.25);border-radius:999px;font-size:.92rem;background:rgba(13,26,21,.45);backdrop-filter:blur(6px)}
+
+/* Prix */
+.prix-grille{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,6vw,90px);align-items:center}
+.estimateur{background:var(--nuit-2);border:1px solid var(--trait);border-radius:26px;padding:clamp(22px,4vw,38px)}
+.estimateur label{display:flex;justify-content:space-between;align-items:baseline;font-weight:500}
+.estimateur label output{font-family:var(--display);font-weight:700;font-size:1.6rem;color:var(--sable)}
+input[type=range]{width:100%;margin:18px 0 6px;-webkit-appearance:none;appearance:none;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--ambre) var(--p,20%),rgba(239,230,216,.15) var(--p,20%));outline-offset:6px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;background:var(--sable);border:5px solid var(--ambre);cursor:grab}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--sable);border:5px solid var(--ambre);cursor:grab}
+.bornes{display:flex;justify-content:space-between;font-size:.82rem;color:var(--brume)}
+.montant{font-family:var(--display);font-weight:800;font-size:clamp(4.4rem,11vw,7.4rem);line-height:.9;margin:30px 0 4px;font-variant-numeric:tabular-nums;color:var(--ambre)}
+.montant small{font-size:.38em;color:var(--sable);margin-left:.15em}
+.detail{display:grid;gap:10px;margin-top:22px;padding-top:20px;border-top:1px solid var(--trait)}
+.detail div{display:flex;justify-content:space-between;color:var(--brume);font-variant-numeric:tabular-nums}
+.detail b{color:var(--sable);font-weight:600}
+.note{color:var(--brume);font-size:.92rem;margin-top:18px}
+
+/* Sécurité */
+.secu-media{border-radius:26px;overflow:hidden;aspect-ratio:21/9;margin-bottom:clamp(40px,6vw,64px)}
+.secu-media img{width:100%;height:100%;object-fit:cover}
+.garanties{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px 48px;list-style:none;margin:0;padding:0}
+.garanties li{border-top:2px solid var(--laterite);padding-top:18px}
+.garanties h3{font-size:1.65rem}
+.garanties p{color:var(--brume);margin-top:10px}
+
+/* Paiement */
+.paiement{border-block:1px solid var(--trait)}
+.moyens{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 28px;margin-top:34px}
+.moyens span{font-family:var(--display);font-weight:800;font-size:clamp(2.2rem,6vw,4.6rem);line-height:1.02;color:var(--sable)}
+.moyens span:nth-child(odd){color:var(--brume)}
+
+/* Proches */
+.duo{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(32px,6vw,90px);align-items:center}
+.portrait{border-radius:26px;overflow:hidden;aspect-ratio:4/5}
+.portrait img{width:100%;height:100%;object-fit:cover}
+.liste-simple{list-style:none;padding:0;margin:30px 0 0;display:grid;gap:16px}
+.liste-simple li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:14px;color:var(--brume)}
+.liste-simple li b{color:var(--sable);font-weight:600}
+.liste-simple svg{margin-top:5px}
+
+/* Chauffeurs */
+.chauffeurs{background:var(--nuit-2)}
+.gains{display:flex;flex-wrap:wrap;gap:36px;margin:34px 0}
+.gains div{min-width:140px}
+.gains b{display:block;font-family:var(--display);font-weight:800;font-size:3.6rem;line-height:1;color:var(--ambre)}
+.gains span{color:var(--brume);font-size:.95rem}
+.dossier{color:var(--brume);max-width:52ch}
+
+/* Film */
+.film-cadre{position:relative;border-radius:26px;overflow:hidden;aspect-ratio:16/9;background:var(--nuit-2);border:1px solid var(--trait)}
+.film-cadre video{width:100%;height:100%;object-fit:cover}
+
+/* Questions */
+.faq{max-width:820px}
+details{border-bottom:1px solid var(--trait)}
+summary{list-style:none;cursor:pointer;padding:24px 0;display:flex;justify-content:space-between;align-items:center;gap:20px;font-size:1.2rem;font-weight:500}
+summary::-webkit-details-marker{display:none}
+summary span.plus{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--trait);position:relative;transition:transform .25s ease,background .25s}
+summary span.plus::before,summary span.plus::after{content:"";position:absolute;left:50%;top:50%;width:11px;height:1.5px;background:var(--sable);transform:translate(-50%,-50%)}
+summary span.plus::after{transform:translate(-50%,-50%) rotate(90deg)}
+details[open] summary span.plus{transform:rotate(45deg);background:var(--laterite);border-color:var(--laterite)}
+details p{color:var(--brume);padding:0 0 26px;max-width:62ch}
+
+/* Final */
+.final{text-align:left;overflow:hidden;position:relative;isolation:isolate}
+.final img{position:absolute;right:-6%;bottom:-10%;width:min(62%,720px);z-index:-1;opacity:.95;mask-image:radial-gradient(closest-side,#000 60%,transparent)}
+.final h2{font-size:clamp(3.4rem,10vw,8.4rem);max-width:8ch}
+.pied{border-top:1px solid var(--trait);padding-block:36px;color:var(--brume);font-size:.92rem}
+.pied .cadre{display:flex;flex-wrap:wrap;gap:16px 40px;justify-content:space-between;align-items:center}
+.pied nav{display:flex;flex-wrap:wrap;gap:20px}
+.pied a{text-decoration:none}
+.pied a:hover{color:var(--sable)}
+
+/* Entrée orchestrée du héros (une seule) */
+@media (prefers-reduced-motion:no-preference){
+  .heros h1 .l{animation:monte .9s cubic-bezier(.2,.7,.2,1) both}
+  .heros h1 .l:nth-child(2){animation-delay:.08s}
+  .heros h1 .l:nth-child(3){animation-delay:.16s}
+  .heros .chapo,.heros .actions{animation:monte .9s .3s cubic-bezier(.2,.7,.2,1) both}
+  .course{animation:monte 1s .45s cubic-bezier(.2,.7,.2,1) both}
+  #route-trace{stroke-dasharray:420;stroke-dashoffset:420;animation:trace 2.2s .9s cubic-bezier(.6,.1,.2,1) forwards}
+}
+@keyframes monte{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+@keyframes trace{to{stroke-dashoffset:0}}
+
+/* Responsive */
+@media (max-width:960px){
+  .heros .cadre{grid-template-columns:minmax(0,1fr);gap:36px;padding-block:120px 48px}
+  .course{justify-self:start;max-width:420px}
+  .etapes-grille,.prix-grille,.duo{grid-template-columns:minmax(0,1fr)}
+  .media-carte{position:relative;top:0;max-width:520px}
+  .garanties{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .nav a:not(.btn){display:none}
+}
+@media (max-width:560px){
+  body{font-size:16px}
+  .garanties{grid-template-columns:minmax(0,1fr)}
+  .heros h1{font-size:clamp(3.2rem,17vw,5rem)}
+  .actions .btn{flex:1 1 100%}
+  .secu-media{aspect-ratio:4/3}
+  .final img{width:90%;opacity:.35}
+  .logo{font-size:1.45rem}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .etapes::before{transition:none}
+  .pastille i{animation:none}
+}
+</style>
+</head>
+<body>
+
+<header class="entete" id="entete">
+  <div class="cadre">
+    <a class="logo" href="#haut" aria-label="Dallas Trak, accueil">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><circle cx="7" cy="25" r="4.5" fill="#C2502A"/><path d="M7 25 C 7 12, 27 22, 27 9" fill="none" stroke="#F2A93B" stroke-width="2.6" stroke-linecap="round"/><circle cx="27" cy="9" r="4.5" fill="none" stroke="#F2A93B" stroke-width="2.6"/></svg>
+      Dallas Trak
+    </a>
+    <nav class="nav" aria-label="Navigation principale">
+      <a href="#fonctionnement">Comment ça marche</a>
+      <a href="#prix">Prix</a>
+      <a href="#securite">Sécurité</a>
+      <a href="#chauffeurs">Devenir chauffeur</a>
+      <a class="btn btn-plein" href="app.html">Commander</a>
+    </nav>
+  </div>
+</header>
+
+<main id="haut">
+
+<section class="heros" aria-labelledby="titre-heros">
+  <div class="heros-media">
+    <video id="video-heros" autoplay muted loop playsinline preload="auto" poster="https://d8j0ntlcm91z4.cloudfront.net/user_3KdzCacYMA03No1NitlWUFVhAOP/hf_20261029_094322_53ce205a-dfb7-4899-8db9-b3be6d9139bc.png" aria-hidden="true">
+      <source src="https://d8j0ntlcm91z4.cloudfront.net/user_3KdzCacYMA03No1NitlWUFVhAOP/hf_20261029_094440_ed231eb8-a4e6-4fc5-8a9f-9999a487480d.mp4" type="video/mp4">
+    </video>
+  </div>
+  <div class="cadre">
+    <div>
+      <h1 id="titre-heros"><span class="l">Le taxi</span><span class="l">vient jusqu'à</span><span class="l">votre porte.</span></h1>
+      <p class="chapo">Commandez une voiture depuis chez vous, partout à Daloa. Vous voyez le prix avant de partir et vous suivez votre chauffeur sur la carte.</p>
+      <div class="actions">
+        <a class="btn btn-plein" href="app.html">Commander une course</a>
+        <a class="btn btn-ligne" href="chauffeur.html">Devenir chauffeur</a>
+      </div>
+    </div>
+
+    <aside class="course" aria-label="Exemple de course en cours">
+      <div class="course-tete"><span class="pastille"><i></i>Chauffeur en route</span><span>Exemple</span></div>
+      <div class="trajet">
+        <svg viewBox="0 0 320 96" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M14 78 C 90 78, 110 20, 180 30 S 270 66, 306 18" fill="none" stroke="rgba(239,230,216,.14)" stroke-width="3" stroke-linecap="round"/>
+          <path id="route-trace" d="M14 78 C 90 78, 110 20, 180 30 S 270 66, 306 18" fill="none" stroke="#F2A93B" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="14" cy="78" r="6" fill="#C2502A"/>
+          <circle cx="306" cy="18" r="6" fill="#0D1A15" stroke="#F2A93B" stroke-width="3"/>
+        </svg>
+        <span class="trajet-label" style="left:0;bottom:-6px"><b>Votre porte</b>Lobia</span>
+        <span class="trajet-label" style="right:0;top:-8px;text-align:right"><b>Destination</b>Commerce</span>
+      </div>
+      <div class="chauffeur">
+        <img src="https://d8j0ntlcm91z4.cloudfront.net/user_3KdzCacYMA03No1NitlWUFVhAOP/hf_20261029_094322_11e2bd8a-4082-4fc4-8b06-cf8ff0a0ec39.png" alt="Photo du chauffeur">
+        <div><b>Ibrahim K.</b><span>Corolla grise · note 4,9</span></div>
+        <div class="eta" aria-label="Arrivée dans 3 minutes">3<small>min</small></div>
+      </div>
+      <div class="prix-ligne"><span>Prix fixé avant le départ</span><b>1 250 F</b></div>
+    </aside>
+  </div>
+</section>
+
+<section class="bloc" id="fonctionnement" aria-labelledby="titre-fonct">
+  <div class="cadre">
+    <div class="tete-bloc">
+      <h2 id="titre-fonct">Quatre gestes, et la voiture arrive.</h2>
+      <p class="chapo">Pas besoin d'adresse avec nom de rue. Un point de repère suffit, comme vous le diriez à un ami.</p>
+    </div>
+    <div class="etapes-grille">
+      <ol class="etapes" id="etapes">
+        <li><span class="num">1</span><div><h3>Dites où vous êtes</h3><p>Votre position s'affiche sur la carte. Ajoutez un repère : « portail bleu après la pharmacie », « derrière la mosquée ».</p></div></li>
+        <li><span class="num">2</span><div><h3>Choisissez où aller</h3><p>Tapez un quartier, un marché, une gare ou un lieu connu. Le prix et la durée s'affichent tout de suite.</p></div></li>
+        <li><span class="num">3</span><div><h3>Suivez votre chauffeur</h3><p>Vous voyez sa photo, sa voiture, sa plaque et sa position. Il vous donne le bon code à 4 chiffres avant que vous montiez.</p></div></li>
+        <li><span class="num">4</span><div><h3>Payez comme vous voulez</h3><p>En espèces à l'arrivée ou par Mobile Money. Puis notez la course pour que le service reste bon.</p></div></li>
+      </ol>
+      <div class="media-carte">
+        <video id="video-carte" autoplay muted loop playsinline preload="metadata" poster="https://d8j0ntlcm91z4.cloudfront.net/user_3KdzCacYMA03No1NitlWUFVhAOP/hf_20261029_094343_6c07ce45-5ed4-4621-bf7d-66d9e6dccbe7.png" aria-label="Animation : une voiture suit le trajet jusqu'au point d'arrivée">
+          <source src="https://d8j0ntlcm91z4.cloudfront.net/user_3KdzCacYMA03No1NitlWUFVhAOP/hf_20261029_094431_cea50e3a-1772-4301-b921-25b38b700277.mp4" type="video/mp4">
+        </video>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="ville" aria-labelledby="titre-ville">
+  <img src="https://d8j0ntlcm91z4.cloudfront.net/user_3KdzCacYMA03No1NitlWUFVhAOP/hf_20261029_094342_8ce3b9af-9811-4020-8227-2d1104a2637b.png" alt="" loading="lazy">
+  <div class="cadre">
+    <h2 id="titre-ville">Toute la ville, de jour comme de nuit.</h2>
+    <p class="chapo" style="margin-top:22px;color:#D9D2C4">Dallas Trak couvre l'ensemble de Daloa. Les chauffeurs les plus proches de vous reçoivent votre demande en premier.</p>
+    <div class="quartiers" aria-label="Exemples de quartiers desservis">
+      <span>Lobia</span><span>Tazibouo</span><span>Orly</span><span>Kennedy</span><span>Commerce</span><span>Évêché</span><span>Et partout ailleurs</span>
+    </div>
+  </div>
+</section>
+
+<section class="bloc" id="prix" aria-labelledby="titre-prix">
+  <div class="cadre prix-grille">
+    <div>
+      <h2 id="titre-prix">Le prix s'affiche avant de partir.</h2>
+      <p class="chapo" style="margin-top:22px">Plus de discussion au bord de la route. Le montant dépend de la distance, il est fixé quand vous validez et il ne change pas pendant le trajet.</p>
+      <p class="note">Les montants sont arrondis aux 50 F pour faciliter la monnaie.</p>
+    </div>
+    <div class="estimateur" aria-labelledby="titre-estim">
+      <h3 id="titre-estim" style="font-size:1.5rem;margin-bottom:22px">Estimez votre course</h3>
+      <label for="km">Distance du trajet <output id="km-val" for="km">4 km</output></label>
+      <input id="km" type="range" min="1" max="15" step="0.5" value="4" aria-describedby="titre-estim">
+      <div class="bornes"><span>1 km</span><span>15 km</span></div>
+      <div class="montant" aria-live="polite"><span id="montant">1 100</span><small>F CFA</small></div>
+      <div class="detail">
+        <div><span>Prise en charge</span><b>500 F</b></div>
+        <div><span>Distance</span><b id="d-km">4 × 150 F</b></div>
+        <div><span>Course minimum</span><b>1 000 F</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bloc" id="securite" aria-labelledby="titre-secu" style="padding-top:0">
+  <div class="cadre">
+    <div class="secu-media"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_3KdzCacYMA03No1NitlWUFVhAOP/hf_20261029_102110_7aefcdb8-7cc4-484a-9687-f1818803cc9f.png" alt="Intérieur d'une voiture Dallas Trak la nuit" loading="lazy"></div>
+    <div class="tete-bloc">
+      <h2 id="titre-secu">Vous savez qui vient vous chercher.</h2>
+    </div>
+    <ul class="garanties">
+      <li><h3>Chauffeurs vérifiés</h3><p>Pièce d'identité, permis, carte grise et photo contrôlés avant la première course.</p></li>
+      <li><h3>Code de course</h3><p>Un code à 4 chiffres s'affiche chez vous. Vous montez seulement si le chauffeur donne le même.</p></li>
+      <li><h3>Photo et plaque</h3><p>Vous voyez le visage du chauffeur, la couleur de la voiture et sa plaque avant son arrivée.</p></li>
+      <li><h3>Trajet partagé</h3><p>Envoyez votre trajet en direct à un proche par WhatsApp ou SMS, en un seul geste.</p></li>
+      <li><h3>Bouton d'urgence</h3><p>Pendant la course, un appui long prévient vos contacts et l'équipe Dallas Trak avec votre position.</p></li>
+      <li><h3>Notes après chaque course</h3><p>Les chauffeurs mal notés sont revus. Les clients aussi peuvent être signalés.</p></li>
+    </ul>
+  </div>
+</section>
+
+<section class="bloc paiement" aria-labelledby="titre-paie">
+  <div class="cadre">
+    <h2 id="titre-paie">Payez avec ce que vous avez.</h2>
+    <div class="moyens"><span>Espèces</span><span>Orange Money</span><span>MTN MoMo</span><span>Moov Money</span><span>Wave</span></div>
+  </div>
+</section>
+
+<section class="bloc" aria-labelledby="titre-proches">
+  <div class="cadre duo">
+    <div class="portrait"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_3KdzCacYMA03No1NitlWUFVhAOP/hf_20261029_094322_5d056580-2daa-4e33-94fa-b6e446c74112.png" alt="Une cliente sort de chez elle, la voiture l'attend devant le portail" loading="lazy"></div>
+    <div>
+      <h2 id="titre-proches">Commandez aussi pour vos proches.</h2>
+      <p class="chapo" style="margin-top:22px">Votre maman n'a pas de smartphone ? Commandez la voiture pour elle depuis votre téléphone, où que vous soyez.</p>
+      <ul class="liste-simple">
+        <li><svg width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><path d="M1 13 C 6 13, 8 1, 21 1" fill="none" stroke="#F2A93B" stroke-width="2" stroke-linecap="round"/></svg><span><b>Le chauffeur appelle votre proche</b>, pas vous, quand il arrive.</span></li>
+        <li><svg width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><path d="M1 13 C 6 13, 8 1, 21 1" fill="none" stroke="#F2A93B" stroke-width="2" stroke-linecap="round"/></svg><span><b>Vous suivez le trajet</b> jusqu'à ce qu'elle soit arrivée.</span></li>
+        <li><svg width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><path d="M1 13 C 6 13, 8 1, 21 1" fill="none" stroke="#F2A93B" stroke-width="2" stroke-linecap="round"/></svg><span><b>Vous pouvez payer à sa place</b> par Mobile Money.</span></li>
+        <li><svg width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><path d="M1 13 C 6 13, 8 1, 21 1" fill="none" stroke="#F2A93B" stroke-width="2" stroke-linecap="round"/></svg><span><b>Planifiez à l'avance</b> pour un départ tôt le matin à la gare.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="bloc chauffeurs" id="chauffeurs" aria-labelledby="titre-chauff">
+  <div class="cadre duo">
+    <div>
+      <h2 id="titre-chauff">Votre voiture, vos clients, vos revenus.</h2>
+      <p class="chapo" style="margin-top:22px">Recevez des courses près de vous sans attendre au bord de la route. Vous voyez le prix et la destination avant d'accepter.</p>
+      <div class="gains">
+        <div><b>90 %</b><span>du prix de chaque course pour vous</span></div>
+        <div><b>0 F</b><span>d'abonnement mensuel</span></div>
+      </div>
+      <p class="dossier">Pour vous inscrire : pièce d'identité, permis de conduire, carte grise de la voiture et une photo de votre visage. Votre dossier est vérifié avant l'activation.</p>
+      <div class="actions"><a class="btn btn-plein" href="chauffeur.html">Devenir chauffeur</a></div>
+    </div>
+    <div class="portrait"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_3KdzCacYMA03No1NitlWUFVhAOP/hf_20261029_094322_11e2bd8a-4082-4fc4-8b06-cf8ff0a0ec39.png" alt="Un chauffeur Dallas Trak devant sa voiture" loading="lazy"></div>
+  </div>
+</section>
+
+
+<section class="bloc" aria-labelledby="titre-faq" style="padding-top:0">
+  <div class="cadre">
+    <div class="faq">
+      <h2 id="titre-faq" style="margin-bottom:28px">Questions fréquentes</h2>
+      <details><summary>Est-ce que je peux annuler une course ?<span class="plus" aria-hidden="true"></span></summary><p>Oui, à tout moment et sans frais. Le chauffeur peut aussi annuler s'il a un empêchement, et une autre voiture vous est proposée.</p></details>
+      <details><summary>Comment le chauffeur trouve ma maison sans adresse ?<span class="plus" aria-hidden="true"></span></summary><p>Votre position GPS s'affiche sur sa carte, et vous ajoutez un point de repère. Il peut aussi vous appeler directement depuis l'application.</p></details>
+      <details><summary>Le prix peut-il changer pendant le trajet ?<span class="plus" aria-hidden="true"></span></summary><p>Non. Le prix affiché au moment de la commande est celui que vous payez.</p></details>
+      <details><summary>Faut-il télécharger l'application sur le Play Store ?<span class="plus" aria-hidden="true"></span></summary><p>Non. Ouvrez Dallas Trak dans votre navigateur, puis ajoutez-la à l'écran d'accueil. Elle s'ouvre ensuite comme une application.</p></details>
+      <details><summary>Mon téléphone a peu de données internet. Ça marche ?<span class="plus" aria-hidden="true"></span></summary><p>Oui. L'application est légère et une course consomme très peu de données.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="bloc final" aria-labelledby="titre-final">
+  <img src="https://d8j0ntlcm91z4.cloudfront.net/user_3KdzCacYMA03No1NitlWUFVhAOP/hf_20261029_094349_f512564a-7d64-437c-90ab-4baa25b0b261.png" alt="" loading="lazy">
+  <div class="cadre">
+    <h2 id="titre-final">On vient vous chercher.</h2>
+    <div class="actions"><a class="btn btn-plein" href="app.html">Commander une course</a><a class="btn btn-ligne" href="chauffeur.html">Devenir chauffeur</a></div>
+  </div>
+</section>
+
+</main>
+
+<footer class="pied">
+  <div class="cadre">
+    <a class="logo" href="#haut" style="font-size:1.4rem"><svg width="26" height="26" viewBox="0 0 34 34" aria-hidden="true"><circle cx="7" cy="25" r="4.5" fill="#C2502A"/><path d="M7 25 C 7 12, 27 22, 27 9" fill="none" stroke="#F2A93B" stroke-width="2.6" stroke-linecap="round"/><circle cx="27" cy="9" r="4.5" fill="none" stroke="#F2A93B" stroke-width="2.6"/></svg>Dallas Trak</a>
+    <nav aria-label="Liens du pied de page"><a href="app.html">Commander</a><a href="chauffeur.html">Espace chauffeur</a><a href="#securite">Sécurité</a><a href="#prix">Prix</a></nav>
+    <span>Daloa, Côte d'Ivoire · 2026</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // En-tête qui se fond au défilement
+  var entete=document.getElementById('entete');
+  function surDefil(){entete.classList.toggle('colle',window.scrollY>40)}
+  surDefil();window.addEventListener('scroll',surDefil,{passive:true});
+
+  // Estimateur de prix : base 500 F + 150 F/km, minimum 1000 F, arrondi aux 50 F
+  var km=document.getElementById('km'),kmVal=document.getElementById('km-val'),
+      montant=document.getElementById('montant'),dkm=document.getElementById('d-km');
+  function fmt(n){return n.toLocaleString('fr-FR').replace(/ | /g,' ')}
+  function prix(d){var p=Math.max(1000,500+150*d);return Math.round(p/50)*50}
+  function maj(){
+    var d=parseFloat(km.value);
+    kmVal.textContent=fmt(d)+' km';
+    montant.textContent=fmt(prix(d));
+    dkm.textContent=fmt(d)+' × 150 F';
+    km.style.setProperty('--p',((d-1)/14*100)+'%');
+  }
+  km.addEventListener('input',maj);maj();
+
+  // Vidéos : pas de lecture automatique si l'utilisateur réduit les animations ou si la source manque
+  var reduit=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  ['video-heros','video-carte','video-film'].forEach(function(id){
+    var v=document.getElementById(id);if(!v)return;
+    var s=v.querySelector('source');
+    if(!s||!s.getAttribute('src')||s.getAttribute('src').indexOf('__')===0){s&&s.remove();v.removeAttribute('autoplay');if(id==='video-film'){v.removeAttribute('controls')}return}
+    if(reduit&&v.hasAttribute('autoplay')){v.removeAttribute('autoplay');v.pause()}
+    s.addEventListener('error',function(){v.removeAttribute('controls')});
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dallas Trak Administration</title>
+<meta name="theme-color" content="#0D1A15">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Familjen+Grotesk:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+/* Espace administrateur : barre de sections en haut, contenu en cartes lisibles sur ordinateur comme sur téléphone. */
+:root{
+  --nuit:#0D1A15;--nuit-2:#14261F;--nuit-3:#1C3229;
+  --laterite:#C2502A;--ambre:#F2A93B;--feuille:#5E9A6E;--danger:#E0533D;
+  --sable:#EFE6D8;--brume:#9AAEA2;--trait:rgba(239,230,216,.12);
+  --display:"Big Shoulders Display","Arial Narrow",sans-serif;
+  --texte:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;min-height:100%}
+body{background:var(--nuit);color:var(--sable);font-family:var(--texte);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--ambre);outline-offset:2px}
+a{color:var(--ambre)}
+h1,h2,h3{font-family:var(--display);font-weight:800;line-height:.95;margin:0}
+h1{font-size:2.4rem}h2{font-size:1.8rem}h3{font-size:1.3rem}
+p{margin:0}
+.mute{color:var(--brume)}.petit{font-size:.86rem}
+.pile{display:grid;gap:14px}
+
+.entete{position:sticky;top:0;z-index:20;background:rgba(13,26,21,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--trait)}
+.entete .ligne1{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px max(20px,env(safe-area-inset-left,0px)) 10px}
+.marque{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:1.45rem;white-space:nowrap}
+.marque small{font-family:var(--texte);font-weight:500;font-size:.85rem;color:var(--brume)}
+.onglets{display:flex;gap:4px;overflow-x:auto;padding:0 max(14px,env(safe-area-inset-left,0px)) 10px;scrollbar-width:none}
+.onglets::-webkit-scrollbar{display:none}
+.onglets button{flex:none;border:1px solid transparent;background:none;color:var(--brume);font-weight:600;padding:9px 14px;border-radius:999px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.onglets button[aria-current="page"]{background:var(--sable);color:var(--nuit)}
+.onglets button:hover:not([aria-current="page"]){border-color:var(--trait);color:var(--sable)}
+.pastille{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--laterite);color:#FFF6EC;font-size:.75rem;display:inline-grid;place-items:center}
+main{max-width:1240px;margin:0 auto;padding:24px max(20px,env(safe-area-inset-left,0px)) 60px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(170px,calc(50% - 5px)),1fr));gap:10px}
+.kpi{padding:16px;border-radius:18px;background:var(--nuit-2);border:1px solid var(--trait)}
+.kpi b{display:block;font-family:var(--display);font-weight:800;font-size:2.2rem;line-height:1;font-variant-numeric:tabular-nums}
+.kpi span{color:var(--brume);font-size:.85rem}
+.kpi.ambre b{color:var(--ambre)}
+.grille2{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.grille2{grid-template-columns:minmax(0,1fr)}}
+#carte{height:440px;border-radius:20px;border:1px solid var(--trait);overflow:hidden;background:#0b1511}
+.leaflet-container{font-family:var(--texte)}
+.leaflet-control-attribution{background:rgba(13,26,21,.7)!important;color:var(--brume)!important;font-size:10px!important}
+.leaflet-control-attribution a{color:var(--sable)!important}
+
+.carte-l{padding:16px;border-radius:18px;background:var(--nuit-2);border:1px solid var(--trait);display:grid;gap:12px}
+.liste{display:grid;gap:10px}
+.entre{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.infos{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--brume);font-size:.88rem}
+.infos b{color:var(--sable);font-weight:600}
+.etat{font-size:.78rem;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.etat.ok{background:rgba(94,154,110,.18);color:#8FCB9E}
+.etat.att{background:rgba(242,169,59,.15);color:var(--ambre)}
+.etat.non{background:rgba(224,83,61,.15);color:#F7B3A6}
+.etat.neutre{background:rgba(239,230,216,.1);color:var(--brume)}
+.photos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:620px){.photos{grid-template-columns:repeat(2,minmax(0,1fr))}.entete .ligne1{padding:12px 16px 8px;gap:10px}.entete .ligne1 .actions>.mute,.marque small{display:none}.entete .ligne1 .btn{min-height:40px;padding:0 14px;font-size:.9rem}}
+.photos button{padding:0;border:1px solid var(--trait);border-radius:12px;overflow:hidden;background:var(--nuit-3);aspect-ratio:4/3;position:relative}
+.photos img{width:100%;height:100%;object-fit:cover;display:block}
+.photos span{position:absolute;left:6px;bottom:6px;background:rgba(13,26,21,.85);padding:2px 8px;border-radius:999px;font-size:.72rem}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border-radius:999px;border:1px solid transparent;font-weight:600;font-size:.92rem;text-decoration:none;color:inherit;background:none}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn-plein{background:var(--laterite);color:#FFF6EC}
+.btn-vert{background:var(--feuille);color:#0D1A15}
+.btn-ambre{background:var(--ambre);color:var(--nuit)}
+.btn-ligne{border-color:rgba(239,230,216,.25);color:var(--sable)}
+.btn-ligne:hover{border-color:var(--sable)}
+.btn-rouge{border-color:rgba(224,83,61,.5);color:#F7B3A6}
+.btn-grand{min-height:54px;width:100%;font-size:1rem}
+.saisie{width:100%;min-height:44px;padding:0 14px;border-radius:12px;background:var(--nuit-3);border:1px solid var(--trait);outline:none}
+.saisie:focus{border-color:var(--ambre)}
+.saisie.court{width:120px}
+.saisie::placeholder{color:#7E9186}
+label.etiq{display:block;font-size:.82rem;color:var(--brume);margin-bottom:5px}
+.form-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.erreur{color:#F08A74;font-size:.88rem}
+.filtres{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filtres button{border:1px solid var(--trait);background:var(--nuit-2);color:var(--brume);padding:7px 13px;border-radius:999px;font-weight:600;font-size:.86rem}
+.filtres button[aria-pressed="true"]{border-color:var(--ambre);color:var(--sable)}
+.vide{padding:28px;text-align:center;color:var(--brume);border:1px dashed var(--trait);border-radius:18px}
+.alerte-carte{border-color:rgba(224,83,61,.55);background:linear-gradient(180deg,rgba(224,83,61,.12),rgba(224,83,61,0))}
+
+.connexion{min-height:100vh;display:grid;place-items:center;padding:24px}
+.connexion>div{width:100%;max-width:400px;padding:28px;border-radius:24px;background:var(--nuit-2);border:1px solid var(--trait)}
+
+.modale{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:20px;background:rgba(5,10,8,.82)}
+.modale img{max-width:min(92vw,1000px);max-height:84vh;border-radius:14px;display:block}
+.modale button{margin-top:12px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);z-index:80;background:var(--sable);color:var(--nuit);padding:12px 18px;border-radius:14px;font-weight:600;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:calc(100vw - 32px);text-align:center}
+.toast.vu{opacity:1;transform:translate(-50%,0)}
+.m-voiture{width:44px;height:44px;display:grid;place-items:center}
+.m-voiture svg{filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+.m-libre svg rect:first-child{stroke:#5E9A6E;stroke-width:2.5}
+.m-depart{width:18px;height:18px;border-radius:50%;background:var(--laterite);border:3px solid var(--sable)}
+.m-quartier{font:600 11px/1 var(--texte);color:#0D1A15;background:rgba(239,230,216,.92);padding:3px 7px;border-radius:999px;white-space:nowrap;transform:translate(-50%,-50%);display:inline-block;pointer-events:none}
+.carte-loin .m-quartier{display:none}
+.chargement{display:grid;place-items:center;min-height:200px}
+.chargement i{width:28px;height:28px;border-radius:50%;border:3px solid rgba(239,230,216,.2);border-top-color:var(--ambre);animation:tourne 1s linear infinite}
+@keyframes tourne{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app"><div class="chargement"><i></i></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="commun.js"></script>
+<script>
+(function(){
+'use strict';
+var esc=DT.esc,fmt=DT.fmt,toast=DT.toast;
+var sb=DT.client('dt-admin');
+var app=document.getElementById('app');
+var SECTIONS=[['tableau','Tableau de bord'],['dossiers','Dossiers'],['chauffeurs','Chauffeurs'],['courses','Courses'],['recharges','Recharges'],['clients','Clients'],['alertes','Alertes'],['reglages','Réglages']];
+var STATUTS={planifiee:['Planifiée','neutre'],recherche:['Recherche','att'],acceptee:['Chauffeur en route','att'],arrivee:['Chauffeur sur place','att'],en_cours:['En course','att'],terminee:['Terminée','ok'],annulee:['Annulée','non'],expiree:['Sans chauffeur','non']};
+var S={moi:null,section:'tableau',stats:null,donnees:{},filtre:'actives',recherche:'',ouvert:{}};
+var carte=null,couche=null,rafraichT=null;
+
+/* ---------- Connexion ---------- */
+function ecranConnexion(msg){
+  arreter();
+  app.innerHTML='<div class="connexion"><div class="pile"><div class="marque"><svg width="28" height="28" viewBox="0 0 34 34" aria-hidden="true"><circle cx="7" cy="25" r="4.5" fill="#C2502A"/><path d="M7 25 C 7 12, 27 22, 27 9" fill="none" stroke="#F2A93B" stroke-width="2.6" stroke-linecap="round"/><circle cx="27" cy="9" r="4.5" fill="none" stroke="#F2A93B" stroke-width="2.6"/></svg>Dallas Trak</div>'+
+    '<div><h1>Administration</h1><p class="mute" style="margin-top:6px">Accès réservé à l’équipe Dallas Trak.</p></div>'+
+    '<form id="f" class="pile" novalidate><div><label class="etiq" for="tel">Numéro de téléphone</label><input class="saisie" id="tel" inputmode="tel" autocomplete="tel"></div>'+
+    '<div><label class="etiq" for="mdp">Mot de passe</label><input class="saisie" id="mdp" type="password" autocomplete="current-password"></div>'+
+    '<p class="erreur" id="err"'+(msg?'':' hidden')+'>'+esc(msg||'')+'</p><button class="btn btn-plein btn-grand" id="ok">Se connecter</button></form></div></div>';
+  document.getElementById('f').addEventListener('submit',function(e){
+    e.preventDefault();
+    var b=document.getElementById('ok'),err=document.getElementById('err');b.disabled=true;b.textContent='Connexion…';
+    DT.connecter(sb,document.getElementById('tel').value,document.getElementById('mdp').value).then(demarrer).catch(function(x){b.disabled=false;b.textContent='Se connecter';err.textContent=DT.msg(x);err.hidden=false});
+  });
+}
+function demarrer(){
+  return sb.auth.getSession().then(function(r){
+    var s=r.data&&r.data.session;if(!s){ecranConnexion();return}
+    return Promise.all([DT.appel(sb.from('dt_profils').select('*').eq('id',s.user.id).maybeSingle()),DT.chargerConfig(sb)]).then(function(res){
+      var p=res[0];
+      if(!p||!p.est_admin||p.suspendu){return sb.auth.signOut().then(function(){ecranConnexion('Ce compte n’a pas accès à l’administration.')})}
+      S.moi=p;cadre();ouvrir(S.section);
+    });
+  }).catch(function(x){ecranConnexion(DT.msg(x))});
+}
+
+/* ---------- Cadre ---------- */
+function cadre(){
+  app.innerHTML='<header class="entete"><div class="ligne1"><div class="marque"><svg width="26" height="26" viewBox="0 0 34 34" aria-hidden="true"><circle cx="7" cy="25" r="4.5" fill="#C2502A"/><path d="M7 25 C 7 12, 27 22, 27 9" fill="none" stroke="#F2A93B" stroke-width="2.6" stroke-linecap="round"/><circle cx="27" cy="9" r="4.5" fill="none" stroke="#F2A93B" stroke-width="2.6"/></svg>Dallas Trak <small>Administration</small></div>'+
+    '<div class="actions"><span class="mute petit">'+esc(S.moi.nom)+'</span><button class="btn btn-ligne" id="sortir">Se déconnecter</button></div></div>'+
+    '<nav class="onglets" aria-label="Sections">'+SECTIONS.map(function(s){return '<button data-section="'+s[0]+'">'+s[1]+'<span class="pastille" id="p-'+s[0]+'" hidden></span></button>'}).join('')+'</nav></header><main id="main"></main>';
+  app.querySelectorAll('[data-section]').forEach(function(b){b.addEventListener('click',function(){ouvrir(b.getAttribute('data-section'))})});
+  document.getElementById('sortir').addEventListener('click',function(){sb.auth.signOut().then(function(){S.moi=null;ecranConnexion()})});
+}
+function ouvrir(sec){
+  S.section=sec;
+  app.querySelectorAll('[data-section]').forEach(function(b){if(b.getAttribute('data-section')===sec)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+  if(carte){carte.remove();carte=null;couche=null}
+  var m=document.getElementById('main');m.innerHTML='<div class="chargement"><i></i></div>';
+  rafraichir(true);
+}
+function arreter(){clearTimeout(rafraichT);rafraichT=null}
+function rafraichir(premier){
+  arreter();
+  var sec=S.section;
+  Promise.all([DT.appel(sb.rpc('dt_admin_stats')),charger(sec)]).then(function(r){
+    if(S.section!==sec)return;
+    S.stats=r[0];pastilles();
+    if(premier||!saisieEnCours())afficher(sec);
+  }).catch(function(x){
+    var t=DT.msg(x);
+    if(/session|Reconnectez|réservé/i.test(t)){ecranConnexion(t);return}
+    toast(t,true);
+  }).then(function(){
+    if(S.moi&&S.section===sec)rafraichT=setTimeout(function(){rafraichir(false)},['tableau','alertes','recharges','dossiers'].indexOf(sec)>-1?10000:30000);
+  });
+}
+// On ne redessine pas pendant que l'administrateur écrit
+function saisieEnCours(){var a=document.activeElement;return a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT')&&document.getElementById('main').contains(a)}
+function pastilles(){
+  var st=S.stats||{};
+  [['dossiers',st.dossiers_attente],['recharges',st.recharges_attente],['alertes',st.alertes]].forEach(function(x){var p=document.getElementById('p-'+x[0]);if(p){p.textContent=x[1];p.hidden=!x[1]}});
+}
+
+/* ---------- Données ---------- */
+function charger(sec){
+  var D=S.donnees;
+  if(sec==='tableau'){
+    return Promise.all([
+      DT.appel(sb.from('dt_chauffeurs').select('id,lat,lng,cap,en_service,position_le,voiture,plaque,dt_profils(nom,telephone)').eq('en_service',true)),
+      DT.appel(sb.from('dt_courses').select('*').in('statut',['recherche','acceptee','arrivee','en_cours']).order('cree_le',{ascending:false}))
+    ]).then(function(r){D.service=r[0]||[];D.actives=r[1]||[]});
+  }
+  if(sec==='dossiers'){
+    return DT.appel(sb.from('dt_chauffeurs').select('*,dt_profils(nom,telephone,cree_le)').eq('statut','en_attente').order('soumis_le')).then(function(l){D.dossiers=l||[];return photos(D.dossiers.map(function(c){return c.id}))});
+  }
+  if(sec==='chauffeurs'){
+    return DT.appel(sb.from('dt_chauffeurs').select('*,dt_profils(nom,telephone,suspendu)').neq('statut','en_attente').order('cree_le',{ascending:false})).then(function(l){D.chauffeurs=l||[]});
+  }
+  if(sec==='courses'){
+    var q=sb.from('dt_courses').select('*').order('cree_le',{ascending:false}).limit(150);
+    if(S.filtre==='actives')q=q.in('statut',['planifiee','recherche','acceptee','arrivee','en_cours']);
+    else if(S.filtre!=='toutes')q=q.eq('statut',S.filtre);
+    return DT.appel(q).then(function(l){D.courses=l||[]});
+  }
+  if(sec==='recharges'){
+    return DT.appel(sb.from('dt_recharges').select('*,dt_chauffeurs(solde,dt_profils(nom,telephone))').order('cree_le',{ascending:false}).limit(100)).then(function(l){D.recharges=l||[]});
+  }
+  if(sec==='clients'){
+    return DT.appel(sb.from('dt_profils').select('*').order('cree_le',{ascending:false}).limit(500)).then(function(l){D.clients=l||[]});
+  }
+  if(sec==='alertes'){
+    return DT.appel(sb.from('dt_alertes').select('*,dt_courses(client_nom,client_tel,chauffeur_nom,chauffeur_tel,voiture,plaque,statut,depart_label,arrivee_label),dt_profils(nom,telephone)').order('cree_le',{ascending:false}).limit(50)).then(function(l){D.alertes=l||[]});
+  }
+  if(sec==='reglages')return DT.chargerConfig(sb);
+  return Promise.resolve();
+}
+var URLS={};
+function photos(ids){
+  var chemins=[];ids.forEach(function(id){['visage','piece','permis','grise'].forEach(function(d){chemins.push(id+'/'+d+'.jpg')})});
+  if(!chemins.length)return Promise.resolve();
+  return sb.storage.from('dallas-trak').createSignedUrls(chemins,3600).then(function(r){(r.data||[]).forEach(function(x){if(x.signedUrl)URLS[x.path]=x.signedUrl})});
+}
+
+/* ---------- Affichage ---------- */
+function afficher(sec){
+  var m=document.getElementById('main');if(!m)return;
+  // Tableau de bord : la carte reste en place (zoom et position conservés), seuls les chiffres et les marqueurs changent
+  if(sec==='tableau'&&carte&&document.getElementById('carte')){
+    var tmp=document.createElement('div');tmp.innerHTML=V.tableau();
+    ['tb-kpis','tb-liste'].forEach(function(id){document.getElementById(id).innerHTML=tmp.querySelector('#'+id).innerHTML});
+    lier(sec);majCouche(false);return;
+  }
+  if(carte){carte.remove();carte=null;couche=null}
+  // Les textes déjà saisis sont conservés lors de l'actualisation automatique
+  var gardes={};m.querySelectorAll('input[id],textarea[id]').forEach(function(i){if(i.id!=='cherche')gardes[i.id]=i.value});
+  m.innerHTML=V[sec]();
+  Object.keys(gardes).forEach(function(id){var i=document.getElementById(id);if(i&&gardes[id]!==undefined)i.value=gardes[id]});
+  lier(sec);
+  if(sec==='tableau')dessinerCarte();
+}
+function etat(s){var e=STATUTS[s]||[s,'neutre'];return '<span class="etat '+e[1]+'">'+e[0]+'</span>'}
+function tel(t){return '<a href="tel:'+esc(t)+'">'+esc(DT.telAff(t))+'</a>'}
+function vide(t){return '<div class="vide">'+t+'</div>'}
+var V={};
+V.tableau=function(){
+  var st=S.stats||{},a=S.donnees.actives||[];
+  return '<div class="pile"><h1>Aujourd’hui</h1>'+
+    '<div class="kpis" id="tb-kpis">'+
+      '<div class="kpi"><b>'+st.courses_jour+'</b><span>courses terminées</span></div>'+
+      '<div class="kpi"><b>'+fmt(st.ca_jour)+'</b><span>F de courses</span></div>'+
+      '<div class="kpi ambre"><b>'+fmt(st.commissions_jour)+'</b><span>F de commissions</span></div>'+
+      '<div class="kpi"><b>'+st.en_cours+'</b><span>courses en cours</span></div>'+
+      '<div class="kpi"><b>'+st.chauffeurs_service+' / '+st.chauffeurs_valides+'</b><span>chauffeurs en service</span></div>'+
+      '<div class="kpi"><b>'+fmt(st.commissions_7j)+'</b><span>F de commissions sur 7 jours</span></div>'+
+      '<div class="kpi"><b>'+st.clients+'</b><span>comptes inscrits</span></div>'+
+      '<div class="kpi"><b>'+st.annulees_jour+'</b><span>annulées ou sans chauffeur</span></div>'+
+    '</div>'+
+    '<div class="grille2"><div id="carte" role="application" aria-label="Carte des chauffeurs et des courses"></div>'+
+    '<div class="pile" id="tb-liste"><h3>Courses en cours</h3>'+(a.length?'<div class="liste">'+a.map(ligneCourse).join('')+'</div>':vide('Aucune course en cours.'))+'</div></div></div>';
+};
+function ligneCourse(c){
+  var actif=['planifiee','recherche','acceptee','arrivee','en_cours'].indexOf(c.statut)>-1;
+  return '<div class="carte-l"><div class="entre"><b>'+esc(c.depart_label)+' vers '+esc(c.arrivee_label)+'</b>'+etat(c.statut)+'</div>'+
+    '<div class="infos"><span>'+esc(DT.quand(c.planifiee_pour&&c.statut==='planifiee'?c.planifiee_pour:c.cree_le))+'</span><span><b>'+fmt(c.prix)+' F</b> · '+DT.PAIEMENTS[c.paiement]+(c.statut==='terminee'?(c.paye?' · payé':' · paiement non confirmé'):'')+'</span><span>Client : <b>'+esc(c.client_nom)+'</b> '+tel(c.client_tel)+'</span>'+
+    (c.proche_nom?'<span>Pour : <b>'+esc(c.proche_nom)+'</b> '+tel(c.proche_tel)+'</span>':'')+
+    (c.chauffeur_nom?'<span>Chauffeur : <b>'+esc(c.chauffeur_nom)+'</b> '+tel(c.chauffeur_tel)+' · '+esc(c.plaque||'')+'</span>':'')+
+    (c.note?'<span>Note : <b>'+c.note+'/5</b>'+(c.commentaire?' « '+esc(c.commentaire)+' »':'')+'</span>':'')+
+    (c.annulee_par?'<span>Annulée par '+esc(c.annulee_par)+'</span>':'')+'</div>'+
+    (actif?'<div class="actions"><button class="btn btn-rouge" data-annuler="'+c.id+'">'+(S.ouvert['a'+c.id]?'Confirmer l’annulation':'Annuler la course')+'</button></div>':'')+'</div>';
+}
+function dessinerCarte(){
+  if(!document.getElementById('carte'))return;
+  carte=DT.carte('carte',{zoomControl:true});carte.poserTuiles('plan',false);
+  couche=L.layerGroup().addTo(carte);
+  majCouche(true);
+}
+function majCouche(cadrer){
+  if(!couche)return;
+  couche.clearLayers();
+  var pts=[];
+  (S.donnees.service||[]).forEach(function(ch){
+    if(ch.lat==null)return;
+    var occupe=(S.donnees.actives||[]).some(function(c){return c.chauffeur_id===ch.id});
+    var m=L.marker([ch.lat,ch.lng],{icon:DT.iconeVoiture(occupe?'':'m-libre'),title:(ch.dt_profils?ch.dt_profils.nom:'')+' · '+ch.plaque}).addTo(couche);
+    DT.orienter(m,ch.cap);
+    m.bindTooltip(esc((ch.dt_profils?ch.dt_profils.nom:'')+' · '+ch.plaque+(occupe?' · en course':' · libre')));
+    pts.push([ch.lat,ch.lng]);
+  });
+  (S.donnees.actives||[]).forEach(function(c){
+    L.marker([c.depart_lat,c.depart_lng],{icon:DT.icone('m-depart'),title:c.client_nom}).bindTooltip(esc(c.client_nom+' · '+(STATUTS[c.statut]||[''])[0])).addTo(couche);
+    pts.push([c.depart_lat,c.depart_lng]);
+  });
+  if(!cadrer)return;
+  if(pts.length)carte.fitBounds(L.latLngBounds(pts),{padding:[40,40],maxZoom:15});else carte.setView(DT.DALOA,14);
+}
+V.dossiers=function(){
+  var l=S.donnees.dossiers||[];
+  return '<div class="pile"><h1>Dossiers à vérifier</h1><p class="mute">Vérifiez que le visage correspond à la pièce d’identité, que le permis est valide et que la carte grise correspond à la plaque.</p>'+
+    (l.length?l.map(function(c){
+      var p=c.dt_profils||{};
+      var ph=['visage','piece','permis','grise'].map(function(d,i){var u=URLS[c.id+'/'+d+'.jpg'];return '<button data-photo="'+esc(u||'')+'" aria-label="Agrandir">'+(u?'<img src="'+esc(u)+'" alt="">':'')+'<span>'+['Visage','Pièce d’identité','Permis','Carte grise'][i]+'</span></button>'}).join('');
+      return '<div class="carte-l"><div class="entre"><h3>'+esc(p.nom)+'</h3><span class="etat att">En attente</span></div>'+
+        '<div class="infos"><span>'+tel(p.telephone)+'</span><span><b>'+esc(c.voiture)+'</b> '+esc(c.couleur)+'</span><span>Plaque <b>'+esc(c.plaque)+'</b></span><span>Mobile Money '+esc(DT.telAff(c.momo_numero))+'</span><span>Envoyé '+esc(DT.quand(c.soumis_le).toLowerCase())+'</span></div>'+
+        '<div class="photos">'+ph+'</div>'+
+        '<div class="actions"><label class="mute petit" for="b-'+c.id+'">Solde offert</label><input class="saisie court" id="b-'+c.id+'" inputmode="numeric" value="0"><button class="btn btn-vert" data-valider="'+c.id+'">Valider le chauffeur</button></div>'+
+        '<div class="actions"><input class="saisie" style="flex:1;min-width:200px" id="m-'+c.id+'" placeholder="Motif du refus, visible par le chauffeur"><button class="btn btn-rouge" data-refuser="'+c.id+'">Refuser</button></div></div>';
+    }).join(''):vide('Aucun dossier en attente.'))+'</div>';
+};
+V.chauffeurs=function(){
+  var q=DT.norm(S.recherche),l=(S.donnees.chauffeurs||[]).filter(function(c){var p=c.dt_profils||{};return !q||DT.norm(p.nom+' '+p.telephone+' '+c.plaque).indexOf(q)>-1});
+  var lib={valide:['Actif','ok'],suspendu:['Suspendu','non'],refuse:['Refusé','non']};
+  return '<div class="pile"><div class="entre"><h1>Chauffeurs</h1><input class="saisie" id="cherche" style="max-width:320px" placeholder="Nom, numéro ou plaque" value="'+esc(S.recherche)+'"></div>'+
+    (l.length?l.map(function(c){
+      var p=c.dt_profils||{},e=lib[c.statut]||['',''],note=c.note_nb?(c.note_somme/c.note_nb).toFixed(1).replace('.',','):'Pas de note';
+      var o=S.ouvert[c.id];
+      return '<div class="carte-l"><div class="entre"><h3>'+esc(p.nom)+'</h3><div class="actions">'+(c.en_service?'<span class="etat ok">En service</span>':'')+'<span class="etat '+e[1]+'">'+e[0]+'</span></div></div>'+
+        '<div class="infos"><span>'+tel(p.telephone)+'</span><span><b>'+esc(c.voiture)+'</b> '+esc(c.couleur)+' · '+esc(c.plaque)+'</span><span>Solde <b>'+fmt(c.solde)+' F</b></span><span>'+c.courses_nb+' courses · '+note+'</span>'+(c.motif?'<span>Motif : '+esc(c.motif)+'</span>':'')+'</div>'+
+        '<div class="actions">'+
+          (c.statut==='valide'||c.statut==='suspendu'?'<button class="btn btn-ligne" data-ouvrir="'+c.id+'">Ajuster le solde</button><button class="btn '+(c.statut==='suspendu'?'btn-vert':'btn-rouge')+'" data-suspendre="'+c.id+'" data-etat="'+(c.statut==='suspendu'?'0':'1')+'">'+(c.statut==='suspendu'?'Réactiver':'Suspendre')+'</button>':'')+
+          '<button class="btn btn-ligne" data-mdp="'+c.id+'">Nouveau mot de passe</button><button class="btn btn-ligne" data-voir="'+c.id+'">Photos</button></div>'+
+        (o==='solde'?'<div class="actions"><input class="saisie court" id="aj-'+c.id+'" inputmode="numeric" placeholder="+2000 ou -500"><input class="saisie" style="flex:1;min-width:200px" id="ajl-'+c.id+'" placeholder="Raison"><button class="btn btn-ambre" data-ajuster="'+c.id+'">Appliquer</button></div>':'')+
+        (o==='mdp'?mdpForm(c.id):'')+
+        (o==='photos'?'<div class="photos">'+['visage','piece','permis','grise'].map(function(d){var u=URLS[c.id+'/'+d+'.jpg'];return '<button data-photo="'+esc(u||'')+'">'+(u?'<img src="'+esc(u)+'" alt="">':'')+'<span>'+d+'</span></button>'}).join('')+'</div>':'')+
+      '</div>';
+    }).join(''):vide('Aucun chauffeur.'))+'</div>';
+};
+function mdpForm(id){return '<div class="actions"><input class="saisie" style="flex:1;min-width:200px" id="mdp-'+id+'" placeholder="Nouveau mot de passe (6 caractères minimum)" autocomplete="off"><button class="btn btn-ambre" data-mdp-ok="'+id+'">Enregistrer</button></div><p class="mute petit">Communiquez-le à la personne après avoir vérifié son identité par téléphone.</p>'}
+V.courses=function(){
+  var f=[['actives','En cours'],['terminee','Terminées'],['annulee','Annulées'],['expiree','Sans chauffeur'],['toutes','Toutes']];
+  var l=S.donnees.courses||[];
+  return '<div class="pile"><h1>Courses</h1><div class="filtres">'+f.map(function(x){return '<button data-filtre="'+x[0]+'" aria-pressed="'+(S.filtre===x[0])+'">'+x[1]+'</button>'}).join('')+'</div>'+
+    (l.length?'<div class="liste">'+l.map(ligneCourse).join('')+'</div>':vide('Aucune course dans cette catégorie.'))+'</div>';
+};
+V.recharges=function(){
+  var l=S.donnees.recharges||[],att=l.filter(function(r){return r.statut==='en_attente'}),autres=l.filter(function(r){return r.statut!=='en_attente'});
+  function carte_(r){
+    var ch=r.dt_chauffeurs||{},p=ch.dt_profils||{};
+    var e={en_attente:['En attente','att'],validee:['Validée','ok'],rejetee:['Rejetée','non']}[r.statut];
+    return '<div class="carte-l"><div class="entre"><h3>'+fmt(r.montant)+' F · '+DT.PAIEMENTS[r.operateur]+'</h3><span class="etat '+e[1]+'">'+e[0]+'</span></div>'+
+      '<div class="infos"><span><b>'+esc(p.nom)+'</b> '+tel(p.telephone)+'</span><span>Envoyé du '+esc(DT.telAff(r.numero))+'</span>'+(r.reference?'<span>Référence <b>'+esc(r.reference)+'</b></span>':'')+'<span>'+esc(DT.quand(r.cree_le))+'</span><span>Solde actuel '+fmt(ch.solde)+' F</span>'+(r.motif?'<span>Motif : '+esc(r.motif)+'</span>':'')+'</div>'+
+      (r.statut==='en_attente'?'<p class="mute petit">Vérifiez sur votre téléphone '+DT.PAIEMENTS[r.operateur]+' que ce montant a bien été reçu avant de valider.</p><div class="actions"><button class="btn btn-vert" data-rvalider="'+r.id+'">'+(S.ouvert['r'+r.id]?'Confirmer : argent reçu':'Valider la recharge')+'</button><input class="saisie" style="flex:1;min-width:180px" id="rm-'+r.id+'" placeholder="Motif du rejet"><button class="btn btn-rouge" data-rrejeter="'+r.id+'">Rejeter</button></div>':'')+'</div>';
+  }
+  return '<div class="pile"><h1>Recharges de commission</h1>'+(att.length?att.map(carte_).join(''):vide('Aucune recharge en attente.'))+
+    (autres.length?'<h3 style="margin-top:10px">Historique</h3>'+autres.map(carte_).join(''):'')+'</div>';
+};
+V.clients=function(){
+  var q=DT.norm(S.recherche),l=(S.donnees.clients||[]).filter(function(c){return !q||DT.norm(c.nom+' '+c.telephone).indexOf(q)>-1});
+  return '<div class="pile"><div class="entre"><h1>Comptes</h1><input class="saisie" id="cherche" style="max-width:320px" placeholder="Nom ou numéro" value="'+esc(S.recherche)+'"></div>'+
+    (l.length?'<div class="liste">'+l.map(function(c){
+      return '<div class="carte-l"><div class="entre"><b>'+esc(c.nom)+'</b><div class="actions">'+(c.est_admin?'<span class="etat ok">Administrateur</span>':'')+(c.suspendu?'<span class="etat non">Suspendu</span>':'')+'</div></div>'+
+        '<div class="infos"><span>'+tel(c.telephone)+'</span><span>Inscrit '+esc(DT.quand(c.cree_le).toLowerCase())+'</span><span>'+(c.contacts||[]).length+' contact(s) d’urgence</span></div>'+
+        (c.id!==S.moi.id?'<div class="actions"><button class="btn '+(c.suspendu?'btn-vert':'btn-rouge')+'" data-suspendre="'+c.id+'" data-etat="'+(c.suspendu?'0':'1')+'">'+(c.suspendu?'Réactiver':'Suspendre')+'</button><button class="btn btn-ligne" data-mdp="'+c.id+'">Nouveau mot de passe</button></div>'+(S.ouvert[c.id]==='mdp'?mdpForm(c.id):''):'')+'</div>';
+    }).join('')+'</div>':vide('Aucun compte.'))+'</div>';
+};
+V.alertes=function(){
+  var l=S.donnees.alertes||[];
+  return '<div class="pile"><h1>Alertes d’urgence</h1><p class="mute">Un client ou un chauffeur a maintenu le bouton d’urgence. Appelez-le immédiatement.</p>'+
+    (l.length?l.map(function(a){
+      var c=a.dt_courses||{},p=a.dt_profils||{};
+      return '<div class="carte-l'+(a.traitee?'':' alerte-carte')+'"><div class="entre"><h3>'+esc(p.nom||'Inconnu')+'</h3><span class="etat '+(a.traitee?'neutre':'non')+'">'+(a.traitee?'Traitée':'À traiter')+'</span></div>'+
+        '<div class="infos"><span>'+esc(DT.quand(a.cree_le))+'</span><span>Appeler '+tel(p.telephone)+'</span>'+
+        (c.chauffeur_nom?'<span>Chauffeur <b>'+esc(c.chauffeur_nom)+'</b> '+tel(c.chauffeur_tel)+' · '+esc(c.voiture||'')+' · '+esc(c.plaque||'')+'</span>':'')+
+        (c.client_nom?'<span>Client <b>'+esc(c.client_nom)+'</b> '+tel(c.client_tel)+'</span>':'')+
+        (c.depart_label?'<span>'+esc(c.depart_label)+' vers '+esc(c.arrivee_label)+' · '+etat(c.statut)+'</span>':'')+
+        (a.lat?'<span><a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+a.lat+','+a.lng+'">Voir la position</a></span>':'')+'</div>'+
+        (a.traitee?'':'<div class="actions"><button class="btn btn-ligne" data-traitee="'+a.id+'">Marquer comme traitée</button></div>')+'</div>';
+    }).join(''):vide('Aucune alerte.'))+'</div>';
+};
+V.reglages=function(){
+  var c=DT.CONFIG;
+  function champ(k,lib,suf){return '<div><label class="etiq" for="g-'+k+'">'+lib+'</label><input class="saisie" id="g-'+k+'" inputmode="decimal" value="'+esc(c[k])+'">'+(suf?'<p class="mute petit" style="margin-top:4px">'+suf+'</p>':'')+'</div>'}
+  function num(k,lib){return '<div><label class="etiq" for="g-'+k+'">'+lib+'</label><input class="saisie" id="g-'+k+'" inputmode="tel" value="'+esc(DT.telAff(c[k]))+'" placeholder="07 00 00 00 00"></div>'}
+  return '<div class="pile"><h1>Réglages</h1>'+
+    '<div class="carte-l"><h3>Tarifs</h3><p class="mute petit">Prix = prise en charge + prix au kilomètre, jamais moins que le minimum, arrondi. Exemple pour 4 km : <b id="exemple">'+fmt(DT.prix(4))+' F</b></p>'+
+    '<div class="form-grille">'+champ('prix_base','Prise en charge (F)')+champ('prix_km','Prix au kilomètre (F)')+champ('prix_min','Course minimum (F)')+champ('arrondi','Arrondi (F)')+champ('commission_pct','Commission Dallas Trak (%)')+champ('seuil_solde','Solde minimum chauffeur (F)')+champ('rayon_km','Rayon de recherche (km)','Distance maximale entre le client et les chauffeurs prévenus')+'</div></div>'+
+    '<div class="carte-l"><h3>Numéros de Dallas Trak</h3><p class="mute petit">Les chauffeurs envoient leurs recharges de commission sur ces numéros. Le service client s’affiche dans les applications.</p>'+
+    '<div class="form-grille">'+num('momo_orange','Orange Money')+num('momo_mtn','MTN MoMo')+num('momo_moov','Moov Money')+num('momo_wave','Wave')+num('service_tel','Service client')+'</div></div>'+
+    '<p class="erreur" id="err" hidden></p><div class="actions"><button class="btn btn-plein" id="enregistrer">Enregistrer les réglages</button></div></div>';
+};
+
+/* ---------- Actions ---------- */
+function action(promesse,msg,b){
+  if(b)b.disabled=true;
+  return DT.appel(promesse).then(function(r){toast(msg);S.ouvert={};rafraichir(true);return r}).catch(function(x){if(b)b.disabled=false;toast(DT.msg(x),true)});
+}
+function lier(sec){
+  var m=document.getElementById('main');
+  function q(sel,fn){m.querySelectorAll(sel).forEach(function(b){b.addEventListener('click',function(){fn(b)})})}
+  q('[data-photo]',function(b){var u=b.getAttribute('data-photo');if(!u)return;var d=document.createElement('div');d.className='modale';d.innerHTML='<div><img src="'+esc(u)+'" alt=""><button class="btn btn-ligne">Fermer</button></div>';d.addEventListener('click',function(){d.remove()});document.body.appendChild(d)});
+  q('[data-annuler]',function(b){var id=b.getAttribute('data-annuler');if(!S.ouvert['a'+id]){S.ouvert['a'+id]=1;afficher(sec);return}action(sb.rpc('dt_admin_annuler_course',{p_course:id}),'Course annulée',b)});
+  q('[data-valider]',function(b){var id=b.getAttribute('data-valider'),bonus=parseInt(document.getElementById('b-'+id).value,10)||0;action(sb.rpc('dt_admin_dossier',{p_chauffeur:id,p_decision:'valider',p_bonus:bonus}),'Chauffeur validé',b)});
+  q('[data-refuser]',function(b){var id=b.getAttribute('data-refuser'),motif=document.getElementById('m-'+id).value.trim();if(motif.length<3){toast('Indiquez le motif du refus');document.getElementById('m-'+id).focus();return}action(sb.rpc('dt_admin_dossier',{p_chauffeur:id,p_decision:'refuser',p_motif:motif}),'Dossier refusé',b)});
+  q('[data-suspendre]',function(b){var id=b.getAttribute('data-suspendre'),on=b.getAttribute('data-etat')==='1';action(sb.rpc('dt_admin_suspendre',{p_utilisateur:id,p_suspendre:on}),on?'Compte suspendu':'Compte réactivé',b)});
+  q('[data-ouvrir]',function(b){var id=b.getAttribute('data-ouvrir');S.ouvert={};S.ouvert[id]='solde';afficher(sec)});
+  q('[data-mdp]',function(b){var id=b.getAttribute('data-mdp');S.ouvert={};S.ouvert[id]='mdp';afficher(sec);var i=document.getElementById('mdp-'+id);if(i)i.focus()});
+  q('[data-voir]',function(b){var id=b.getAttribute('data-voir');photos([id]).then(function(){S.ouvert={};S.ouvert[id]='photos';afficher(sec)})});
+  q('[data-ajuster]',function(b){var id=b.getAttribute('data-ajuster'),v=parseInt(String(document.getElementById('aj-'+id).value).replace(/[^0-9-]/g,''),10),l=document.getElementById('ajl-'+id).value.trim();if(!v){toast('Indiquez un montant, par exemple 2000 ou -500');return}action(sb.rpc('dt_admin_ajuster',{p_chauffeur:id,p_montant:v,p_libelle:l}),'Solde ajusté',b)});
+  q('[data-mdp-ok]',function(b){
+    var id=b.getAttribute('data-mdp-ok'),v=document.getElementById('mdp-'+id).value;
+    if(v.length<6){toast('6 caractères minimum');return}
+    b.disabled=true;
+    sb.auth.getSession().then(function(r){
+      return fetch(DT.URL+'/functions/v1/dt-admin',{method:'POST',headers:{'Content-Type':'application/json',apikey:DT.CLE,Authorization:'Bearer '+r.data.session.access_token},body:JSON.stringify({action:'mot_de_passe',utilisateur:id,mot_de_passe:v})});
+    }).then(function(r){return r.json()}).then(function(j){if(!j.ok)throw new Error(j.erreur||'Changement impossible');toast('Mot de passe changé');S.ouvert={};afficher(sec)}).catch(function(x){b.disabled=false;toast(DT.msg(x),true)});
+  });
+  q('[data-rvalider]',function(b){var id=b.getAttribute('data-rvalider');if(!S.ouvert['r'+id]){S.ouvert['r'+id]=1;afficher(sec);return}action(sb.rpc('dt_admin_recharge',{p_recharge:id,p_valider:true}),'Recharge validée, solde crédité',b)});
+  q('[data-rrejeter]',function(b){var id=b.getAttribute('data-rrejeter'),motif=document.getElementById('rm-'+id).value.trim();if(motif.length<3){toast('Indiquez le motif du rejet');return}action(sb.rpc('dt_admin_recharge',{p_recharge:id,p_valider:false,p_motif:motif}),'Recharge rejetée',b)});
+  q('[data-traitee]',function(b){action(sb.rpc('dt_admin_alerte_traitee',{p_alerte:b.getAttribute('data-traitee')}),'Alerte traitée',b)});
+  q('[data-filtre]',function(b){S.filtre=b.getAttribute('data-filtre');rafraichir(true)});
+  var ch=document.getElementById('cherche');
+  if(ch){ch.addEventListener('input',function(){S.recherche=ch.value;var pos=ch.selectionStart;afficher(sec);var n=document.getElementById('cherche');n.focus();n.setSelectionRange(pos,pos)})}
+  if(sec==='reglages'){
+    var ids=['prix_base','prix_km','prix_min','arrondi','commission_pct','seuil_solde','rayon_km'];
+    ids.forEach(function(k){document.getElementById('g-'+k).addEventListener('input',function(){
+      var c=Object.assign({},DT.CONFIG);ids.forEach(function(x){c[x]=parseFloat(String(document.getElementById('g-'+x).value).replace(',','.'))||0});
+      var p=Math.round(Math.max(c.prix_min,c.prix_base+c.prix_km*4)/(c.arrondi||1))*(c.arrondi||1);document.getElementById('exemple').textContent=fmt(p)+' F';
+    })});
+    document.getElementById('enregistrer').addEventListener('click',function(){
+      var p={};ids.forEach(function(k){p[k]=parseFloat(String(document.getElementById('g-'+k).value).replace(',','.'))});
+      if(ids.some(function(k){return isNaN(p[k])})){var e=document.getElementById('err');e.textContent='Tous les tarifs doivent être des nombres.';e.hidden=false;return}
+      ['momo_orange','momo_mtn','momo_moov','momo_wave','service_tel'].forEach(function(k){p[k]=DT.telNorm(document.getElementById('g-'+k).value)});
+      action(sb.rpc('dt_admin_config',{p:p}),'Réglages enregistrés',document.getElementById('enregistrer'));
+    });
+  }
+}
+
+sb.auth.onAuthStateChange(function(ev){if(ev==='SIGNED_OUT'&&S.moi){S.moi=null;ecranConnexion('Votre session a expiré. Reconnectez-vous.')}});
+demarrer();
+})();
+</script>
+</body>
+</html>
