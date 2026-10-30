@@ -1,0 +1,37 @@
+plugins { id 'com.android.application' }
+
+// Signature de publication : clé et mot de passe fournis par les secrets GitHub (voir ci/README.md)
+def cleFichier = file("${rootDir}/signature.jks")
+def motDePasse = System.getenv("DT_SIGNATURE") ?: ""
+
+android {
+    namespace 'ci.dallastrak.pro'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'ci.dallastrak.pro'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+    signingConfigs {
+        publication {
+            storeFile cleFichier
+            storePassword motDePasse
+            keyAlias 'dallastrak'
+            keyPassword motDePasse
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (motDePasse) signingConfig signingConfigs.publication
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildFeatures { buildConfig true }
+    lint { abortOnError false; checkReleaseBuilds false }
+}

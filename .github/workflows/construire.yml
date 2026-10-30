@@ -1,0 +1,65 @@
+name: Construire et tester
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Compiler (version de test)
+        run: gradle assembleDebug --no-daemon --stacktrace
+      - name: Compiler (version signée)
+        env:
+          DT_SIGNATURE: ${{ secrets.DT_SIGNATURE }}
+          DT_CLE: ${{ secrets.DT_CLE }}
+        run: |
+          if [ -n "$DT_SIGNATURE" ] && [ -n "$DT_CLE" ]; then
+            echo "$DT_CLE" | base64 -d > signature.jks
+            gradle assembleRelease --no-daemon
+            rm -f signature.jks
+            cp app/build/outputs/apk/release/app-release.apk dallas-trak-pro.apk
+          else
+            echo "Secrets de signature absents : pas de version publiée."
+          fi
+      - name: Activer l'accélération de l'émulateur
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Tester sur un téléphone Android 14 simulé
+        id: test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back none
+          script: bash ci/test-emulateur.sh
+      - name: Publier les résultats du test
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p resultats
+          echo "Commit ${GITHUB_SHA::7}" >> resultats/resultats.txt
+          gh release create "test-${{ github.run_number }}" resultats/* --repo "$GITHUB_REPOSITORY" --prerelease --title "Test ${{ github.run_number }}" --notes-file resultats/resultats.txt
+      - name: Publier l'application
+        if: success() && hashFiles('dallas-trak-pro.apk') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v1.0-${{ github.run_number }}" dallas-trak-pro.apk --repo "$GITHUB_REPOSITORY" --latest --title "Dallas Trak Pro 1.0 (version ${{ github.run_number }})" --notes "Application Android des chauffeurs Dallas Trak. Téléchargez dallas-trak-pro.apk, ouvrez-le et autorisez l'installation."
